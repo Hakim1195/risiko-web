@@ -16,5 +16,7 @@ jobs:
 
       - name: Démarrage des conteneurs
         run: |
+          docker stop $(docker ps -aq)
+          docker rm $(docker ps -aq)
           docker-compose down
           docker-compose up --build -d
