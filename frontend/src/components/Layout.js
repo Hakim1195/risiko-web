@@ -1,16 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Layout.css';
 
 const Layout = ({ children }) => {
   return (
     <div className="layout">
       <header className="layout-header">
-        <h1>Game Board Strategy</h1>
+        <Link to="/" className="nav-logo">
+          Game Board Strategy
+        </Link>
         <nav className="layout-nav">
-          <a href="#/home">Accueil</a>
-          <a href="#/games">Jeux</a>
-          <a href="#/rooms">Salles</a>
-          <a href="#/profile">Profil</a>
+          <Link to="/" className="nav-link">Accueil</Link>
+          <Link to="/lobby" className="nav-link">Lobby</Link>
+          <Link to="/profile" className="nav-link">Profil</Link>
         </nav>
       </header>
       <main className="layout-main">
