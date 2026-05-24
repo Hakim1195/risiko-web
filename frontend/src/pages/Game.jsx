@@ -129,21 +129,10 @@ const Game = () => {
               <h2 className="hero-subtitle">Carte du jeu</h2>
             </div>
             <div className="game-board-content">
-              <GameBoard />
+              <GameBoard gameId={matchId || 'game123'} playerId="player1" />
             </div>
           </div>
         </main>
-
-        <footer className="game-footer">
-          <div className="game-controls">
-            <button className="btn-primary" onClick={handleEndTurn}>
-              Fin du tour
-            </button>
-            <button className="btn-secondary" onClick={handleLeaveGame}>
-              Quitter la partie
-            </button>
-          </div>
-        </footer>
       </div>
     </div>
   );

@@ -16,6 +16,6 @@ jobs:
 
       - name: Démarrage des conteneurs
         run: |
-          docker rm -f $(docker ps -aq)
+          docker rm game-board-backend game-board-db game-board-frontend redis traefik
           docker-compose down
           docker-compose up --build -d
