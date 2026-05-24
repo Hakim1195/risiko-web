@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://prismlang.github.io/docs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  avatarUrl String?
+  eloRating Int      @default(1200)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  Message[]
+  games     Game[]
+  matches   Match[]
+  matchHistory MatchHistory[]
+  leaderboard Leaderboard?
+}
+
+model Game {
+  id         Int      @id @default(autoincrement())
+  name       String
+  description String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  rooms      Room[]
+  matches    Match[]
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  gameId    Int
+  game      Game     @relation(fields: [gameId], references: [id])
+  messages  Message[]
+  players   RoomPlayer[]
+}
+
+model RoomPlayer {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  userId    Int
+  playerOrder Int
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  name       String
+  gameState  Json
+  players    Json
+  status     String   @default("waiting")
+  winnerId   Int?
+  startedAt  DateTime @default(now())
+  endedAt    DateTime?
+  turnNumber Int      @default(1)
+  currentPlayerId Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [winnerId], references: [id])
+  playersRef User[]   @relation("MatchPlayer")
+}
+
+model MatchHistory {
+  id         Int      @id @default(autoincrement())
+  matchId    Int
+  playerId   Int
+  result     String
+  eloChange  Int?
+  playedAt   DateTime @default(now())
+  match      Match    @relation(fields: [matchId], references: [id])
+  player     User     @relation(fields: [playerId], references: [id])
+}
+
+model Leaderboard {
+  userId    Int    @id
+  totalMatches Int
+  wins      Int
+  losses    Int
+  draws     Int
+  winRate   Float
+  lastUpdated DateTime @default(now())
+  user      User   @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  userId    Int
+  roomId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])

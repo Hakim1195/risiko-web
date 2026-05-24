@@ -1,0 +1,20 @@
+name: Deploiement Local VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build et Déploiement Docker
+    runs-on: self-hosted
+    
+    steps:
+      - name: Récupération du code source
+        uses: actions/checkout@v4
+
+      - name: Démarrage des conteneurs
+        run: |
+          docker-compose down
+          docker-compose up --build -d
