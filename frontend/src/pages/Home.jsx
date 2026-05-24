@@ -11,7 +11,7 @@ const Home = () => {
         <p className="hero-subtitle">Le jeu de stratégie ultime - Prenez le contrôle du monde en lançant des attaques, défendant vos territoires et détruisant vos ennemis</p>
         <div className="home-cta">
           <Link to="/lobby" className="btn-primary">Commencer une partie</Link>
-          <Link to="/lobby" className="btn-secondary">Rejoindre une partie</Link>
+          <Link to="/profile" className="btn-secondary">Voir mon profil</Link>
         </div>
       </div>
 

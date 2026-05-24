@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Home.css';
 
 const Home = () => {
@@ -9,8 +10,8 @@ const Home = () => {
         <h1 className="hero-title">WORLD CONQUEST</h1>
         <p className="hero-subtitle">Le jeu de stratégie ultime - Prenez le contrôle du monde en lançant des attaques, défendant vos territoires et détruisant vos ennemis</p>
         <div className="home-cta">
-          <button className="btn-primary">Commencer une partie</button>
-          <button className="btn-secondary">Rejoindre une partie</button>
+          <Link to="/lobby" className="btn-primary">Commencer une partie</Link>
+          <Link to="/profile" className="btn-secondary">Voir mon profil</Link>
         </div>
       </div>
 
