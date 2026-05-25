@@ -1,10 +1,11 @@
 // Game map configuration for Risk game with 42 territories and 6 continents
 const Territory = require('./territory.model');
+
 const continents = {
   ASIA: {
     id: 'ASIA',
     name: 'Asie',
-    territoryCount: 12,
+    territoryCount: 11,
     bonusArmies: 7
   },
   NORTH_AMERICA: {
@@ -16,7 +17,7 @@ const continents = {
   EUROPE: {
     id: 'EUROPE',
     name: 'Europe',
-    territoryCount: 7,
+    territoryCount: 6,
     bonusArmies: 5
   },
   AFRICA: {
@@ -40,7 +41,7 @@ const continents = {
 };
 
 const territories = [
-  // ASIA - 12 territories
+  // ASIA - 11 territories
   { id: 'AFGHANISTAN', name: 'Afghanistan', continent: 'ASIA', adjacent: ['CHINA', 'INDIA', 'MIDDLE_EAST', 'URAL', 'KAMCHATKA'] },
   { id: 'CHINA', name: 'Chine', continent: 'ASIA', adjacent: ['AFGHANISTAN', 'INDIA', 'MONGOLIA', 'SIBERIA', 'MIDDLE_EAST'] },
   { id: 'INDIA', name: 'Inde', continent: 'ASIA', adjacent: ['AFGHANISTAN', 'CHINA', 'MIDDLE_EAST', 'SIAM'] },
@@ -49,10 +50,10 @@ const territories = [
   { id: 'SIBERIA', name: 'Sibérie', continent: 'ASIA', adjacent: ['CHINA', 'MONGOLIA', 'URAL', 'KAMCHATKA'] },
   { id: 'URAL', name: 'Ural', continent: 'ASIA', adjacent: ['AFGHANISTAN', 'MIDDLE_EAST', 'SIBERIA'] },
   { id: 'KAMCHATKA', name: 'Kamchatka', continent: 'ASIA', adjacent: ['AFGHANISTAN', 'MONGOLIA', 'SIBERIA', 'MIDDLE_EAST'] },
-  { id: 'SIAM', name: 'Siam', continent: 'ASIA', adjacent: ['INDIA', 'INDONESIA', 'THAILAND'] },
-  { id: 'THAILAND', name: 'Thaïlande', continent: 'ASIA', adjacent: ['SIAM', 'INDONESIA'] },
+  { id: 'SIAM', name: 'Siam', continent: 'ASIA', adjacent: ['INDIA', 'THAILAND'] },
+  { id: 'THAILAND', name: 'Thaïlande', continent: 'ASIA', adjacent: ['SIAM'] },
   { id: 'INDONESIA', name: 'Indonésie', continent: 'ASIA', adjacent: ['SIAM', 'THAILAND', 'NEW_GUINEA'] },
-  { id: 'NEW_GUINEA', name: 'Nouvelle-Guinée', continent: 'ASIA', adjacent: ['INDONESIA', 'EAST_AFRICA', 'WEST_AFRICA'] },
+  // Removed NEW_GUINEA from ASIA to avoid duplicates
   
   // NORTH_AMERICA - 9 territories
   { id: 'ALASKA', name: 'Alaska', continent: 'NORTH_AMERICA', adjacent: ['KAMCHATKA', 'NORTHWEST_TERRITORY', 'GREENLAND'] },
@@ -65,7 +66,7 @@ const territories = [
   { id: 'EASTERN_UNITED_STATES', name: 'États-Unis Orientaux', continent: 'NORTH_AMERICA', adjacent: ['ONTARIO', 'QUEBEC', 'WESTERN_UNITED_STATES', 'MEXICO'] },
   { id: 'MEXICO', name: 'Mexique', continent: 'NORTH_AMERICA', adjacent: ['WESTERN_UNITED_STATES', 'EASTERN_UNITED_STATES', 'CENTRAL_AMERICA'] },
   
-  // EUROPE - 7 territories
+  // EUROPE - 6 territories
   { id: 'ICELAND', name: 'Islande', continent: 'EUROPE', adjacent: ['GREENLAND', 'SCANDINAVIA', 'UNITED_KINGDOM'] },
   { id: 'SCANDINAVIA', name: 'Scandinavie', continent: 'EUROPE', adjacent: ['ICELAND', 'UNITED_KINGDOM', 'NORTHERN_EUROPE', 'URAL'] },
   { id: 'UNITED_KINGDOM', name: 'Royaume-Uni', continent: 'EUROPE', adjacent: ['ICELAND', 'SCANDINAVIA', 'NORTHERN_EUROPE', 'SOUTHERN_EUROPE'] },
@@ -88,10 +89,10 @@ const territories = [
   { id: 'ARGENTINA', name: 'Argentine', continent: 'SOUTH_AMERICA', adjacent: ['PERU', 'BRAZIL'] },
   
   // OCEANIA - 4 territories
-  { id: 'EAST_AFRICA', name: 'Afrique de l\'Est', continent: 'OCEANIA', adjacent: ['INDONESIA', 'NEW_GUINEA'] },
-  { id: 'WEST_AFRICA', name: 'Afrique de l\'Ouest', continent: 'OCEANIA', adjacent: ['INDONESIA', 'NEW_GUINEA'] },
+  { id: 'FIJI', name: 'Fidji', continent: 'OCEANIA', adjacent: ['NEW_GUINEA', 'WEST_AFRICA'] },
   { id: 'NEW_GUINEA', name: 'Nouvelle-Guinée', continent: 'OCEANIA', adjacent: ['INDONESIA', 'EAST_AFRICA', 'WEST_AFRICA'] },
-  { id: 'INDONESIA', name: 'Indonésie', continent: 'OCEANIA', adjacent: ['SIAM', 'THAILAND', 'NEW_GUINEA'] }
+  { id: 'AUSTRALIA', name: 'Australie', continent: 'OCEANIA', adjacent: ['NEW_GUINEA', 'FIJI'] },
+  { id: 'NEW_ZEALAND', name: 'Nouvelle-Zélande', continent: 'OCEANIA', adjacent: ['AUSTRALIA', 'FIJI'] }
 ];
 
 // Create a map of territory IDs to territory objects for easy lookup
@@ -101,27 +102,8 @@ territories.forEach(territory => {
     territory.id,
     territory.name,
     territory.continent,
-    territory.adjacent,
-    0, // initial armies
-    null // initial owner
+    territory.adjacent
   ));
 });
 
-// Add one more territory to make it 42 total
-// This is a placeholder for the missing territory - in a real implementation, 
-// this would be a proper territory with correct adjacency
-territories.push({ id: 'MISSING_TERRITORY', name: 'Territoire Manquant', continent: 'ASIA', adjacent: [] });
-territoryMap.set('MISSING_TERRITORY', new Territory(
-  'MISSING_TERRITORY',
-  'Territoire Manquant',
-  'ASIA',
-  [],
-  0,
-  null
-));
-
-module.exports = {
-  continents,
-  territories,
-  territoryMap
-};
+module.exports = { continents, territories, territoryMap };

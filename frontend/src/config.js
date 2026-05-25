@@ -1,34 +1,14 @@
-// Configuration du frontend pour Game Board Strategy
-
+// Frontend configuration
 const config = {
-  // URL de l'API backend
-  apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:3000/api',
+  // API base URL
+  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api',
   
-  // URL du serveur WebSocket
-  socketUrl: process.env.REACT_APP_SOCKET_URL || 'http://localhost:3000',
+  // WebSocket URL
+  WS_URL: process.env.REACT_APP_WS_URL || 'ws://localhost:3000',
   
-  // Configuration de l'application
-  app: {
-    name: 'Game Board Strategy',
-    version: '1.0.0',
-    description: 'Plateforme de jeu de plateau multijoueur'
-  },
-  
-  // Configuration des services
-  services: {
-    // Configuration de l'authentification
-    auth: {
-      tokenStorageKey: 'game-board-strategy-token',
-      refreshTokenStorageKey: 'game-board-strategy-refresh-token'
-    },
-    
-    // Configuration du WebSocket
-    socket: {
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000,
-      timeout: 5000
-    }
-  }
+  // Application settings
+  APP_NAME: 'Game Board Strategy',
+  VERSION: '1.0.0'
 };
 
 export default config;
