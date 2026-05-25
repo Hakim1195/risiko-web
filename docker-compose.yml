@@ -22,16 +22,17 @@ services:
     networks:
       - game-network
 
-  # Base de données PostgreSQL
+  # Base de données MySQL
   database:
-    image: postgres:15-alpine
+    image: mysql:8.0
     container_name: game-board-db
     environment:
-      - POSTGRES_DB=gameboard
-      - POSTGRES_USER=gameboard_user
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=gameboard
+      - MYSQL_USER=gameboard_user
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     networks:
       - game-network
 
@@ -89,7 +90,7 @@ services:
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
 
 networks:

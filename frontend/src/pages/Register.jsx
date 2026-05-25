@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/Home.css';
+import config from '../config';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,7 +11,16 @@ const Register = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/lobby');
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,26 +33,45 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     // Vérification des mots de passe
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
+      setLoading(false);
       return;
     }
 
     try {
-      // Ici nous ferons l'appel API pour l'inscription
-      // Pour le moment, simulation
-      console.log('Registration attempt:', formData);
-      
-      // Simuler une requête API
-      setTimeout(() => {
-        // Simulation de succès
-        localStorage.setItem('token', 'fake-jwt-token');
-        navigate('/lobby');
-      }, 1000);
+      const response = await fetch(`${config.API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur d\'inscription');
+      }
+
+      // Store token
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Navigate to lobby
+      navigate('/lobby');
     } catch (err) {
-      setError('Erreur d\'inscription. Veuillez réessayer.');
+      setError(err.message || 'Erreur d\'inscription. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,6 +92,7 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="form-input"
+                placeholder="Votre pseudo"
               />
             </div>
             <div className="form-group">
@@ -75,6 +105,7 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="form-input"
+                placeholder="votre@email.com"
               />
             </div>
             <div className="form-group">
@@ -87,7 +118,9 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="form-input"
+                placeholder="••••••••"
               />
+              <small className="form-hint">Minimum 8 caractères, une majuscule, une minuscule et un chiffre</small>
             </div>
             <div className="form-group">
               <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
@@ -99,9 +132,12 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="form-input"
+                placeholder="••••••••"
               />
             </div>
-            <button type="submit" className="btn-primary">S'inscrire</button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Inscription...' : "S'inscrire"}
+            </button>
           </form>
           <p className="auth-link">
             Vous avez déjà un compte ? <Link to="/login" className="btn-secondary">Se connecter</Link>

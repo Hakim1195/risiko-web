@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../components/Home.css';
+import config from '../config';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -11,40 +12,81 @@ const Profile = () => {
     email: '',
     avatarUrl: ''
   });
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Mock user data
+  // Get user data from API
   useEffect(() => {
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      setUser({
-        id: 1,
-        username: 'WarriorPlayer',
-        email: 'warrior@example.com',
-        avatarUrl: 'https://via.placeholder.com/150',
-        eloRating: 1450,
-        totalMatches: 124,
-        wins: 86,
-        losses: 38,
-        winRate: 69.3,
-        lastLogin: '2026-05-23'
-      });
-      setProfileData({
-        username: 'WarriorPlayer',
-        email: 'warrior@example.com',
-        avatarUrl: 'https://via.placeholder.com/150'
-      });
-      setLoading(false);
-    }, 500);
-  }, []);
+    const fetchUserProfile = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erreur lors de la récupération du profil');
+        }
+
+        setUser(data.user);
+        setProfileData({
+          username: data.user.username,
+          email: data.user.email,
+          avatarUrl: data.user.avatarUrl || ''
+        });
+      } catch (err) {
+        setError(err.message);
+        navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [navigate]);
 
   const handleEdit = () => {
     setEditing(true);
   };
 
-  const handleSave = () => {
-    // In a real app, this would be an API call
-    setEditing(false);
+  const handleSave = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la mise à jour du profil');
+      }
+
+      setUser(data.user);
+      setEditing(false);
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleCancel = () => {
@@ -65,28 +107,34 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    // In a real app, this would clear the auth token
-    localStorage.removeItem('authToken');
-    navigate('/login');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+    navigate('/');
   };
 
   if (loading) {
     return (
       <div className="home">
-        <div className="loading">Loading profile...</div>
+        <div className="loading">Chargement du profil...</div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="home">
       <div className="home-hero" style={{ margin: '2rem 0' }}>
         <h1 className="hero-title">Profil Utilisateur</h1>
+        {error && <div className="error-message" style={{ color: '#ff5252', textAlign: 'center', margin: '1rem 0' }}>{error}</div>}
         <div className="profile-content">
           <div className="profile-card">
             <div className="profile-avatar">
               <img 
-                src={user.avatarUrl} 
+                src={user.avatarUrl || 'https://via.placeholder.com/150'} 
                 alt={user.username} 
                 className="avatar-img"
               />
@@ -97,6 +145,7 @@ const Profile = () => {
                   value={profileData.avatarUrl}
                   onChange={handleChange}
                   className="avatar-input"
+                  placeholder="URL de l'avatar"
                 />
               )}
             </div>
@@ -104,11 +153,40 @@ const Profile = () => {
               <h2 className="hero-subtitle">{user.username}</h2>
               <p><strong>Email:</strong> {user.email}</p>
               <p><strong>Rating ELO:</strong> {user.eloRating}</p>
-              <p><strong>Matchs totaux:</strong> {user.totalMatches}</p>
-              <p><strong>Victoires:</strong> {user.wins}</p>
-              <p><strong>Défaites:</strong> {user.losses}</p>
-              <p><strong>Taux de victoire:</strong> {user.winRate}%</p>
-              <p><strong>Dernière connexion:</strong> {user.lastLogin}</p>
+              {editing ? (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="username">Nom d'utilisateur</label>
+                    <input
+                      type="text"
+                      id="username"
+                      name="username"
+                      value={profileData.username}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={profileData.email}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p><strong>Total Matchs:</strong> {user.totalMatches || 0}</p>
+                  <p><strong>Victoires:</strong> {user.wins || 0}</p>
+                  <p><strong>Défaites:</strong> {user.losses || 0}</p>
+                  <p><strong>Taux de victoire:</strong> {user.winRate ? `${user.winRate}%` : 'N/A'}</p>
+                  <p><strong>Inscription:</strong> {new Date(user.createdAt).toLocaleDateString('fr-FR')}</p>
+                </>
+              )}
             </div>
             <div className="profile-actions">
               {editing ? (

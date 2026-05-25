@@ -1,67 +1,159 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Lobby.css';
+import config from '../config';
 
 const Lobby = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newRoomName, setNewRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(4);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Mock rooms data
+  // Fetch rooms from API
   useEffect(() => {
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      setRooms([
-        {
-          id: 1,
-          name: 'Battle Royale',
-          maxPlayers: 4,
-          currentPlayers: 3,
-          status: 'waiting',
-          gameType: 'risk'
-        },
-        {
-          id: 2,
-          name: 'World Conquest',
-          maxPlayers: 6,
-          currentPlayers: 6,
-          status: 'in_progress',
-          gameType: 'risk'
-        },
-        {
-          id: 3,
-          name: 'European Wars',
-          maxPlayers: 4,
-          currentPlayers: 2,
-          status: 'waiting',
-          gameType: 'risk'
+    const fetchRooms = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${config.API_BASE_URL}/rooms`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setRooms(data.rooms || []);
+        } else {
+          // Fallback to mock data if API fails
+          setRooms([
+            {
+              id: 1,
+              name: 'Battle Royale',
+              maxPlayers: 4,
+              currentPlayers: 3,
+              status: 'waiting',
+              gameType: 'risk'
+            },
+            {
+              id: 2,
+              name: 'World Conquest',
+              maxPlayers: 6,
+              currentPlayers: 6,
+              status: 'in_progress',
+              gameType: 'risk'
+            },
+            {
+              id: 3,
+              name: 'European Wars',
+              maxPlayers: 4,
+              currentPlayers: 2,
+              status: 'waiting',
+              gameType: 'risk'
+            }
+          ]);
         }
-      ]);
-      setLoading(false);
-    }, 500);
+      } catch (err) {
+        console.error('Error fetching rooms:', err);
+        // Fallback to mock data
+        setRooms([
+          {
+            id: 1,
+            name: 'Battle Royale',
+            maxPlayers: 4,
+            currentPlayers: 3,
+            status: 'waiting',
+            gameType: 'risk'
+          },
+          {
+            id: 2,
+            name: 'World Conquest',
+            maxPlayers: 6,
+            currentPlayers: 6,
+            status: 'in_progress',
+            gameType: 'risk'
+          },
+          {
+            id: 3,
+            name: 'European Wars',
+            maxPlayers: 4,
+            currentPlayers: 2,
+            status: 'waiting',
+            gameType: 'risk'
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
   }, []);
 
-  const handleCreateRoom = (e) => {
+  const handleCreateRoom = async (e) => {
     e.preventDefault();
-    // In a real app, this would be an API call
-    const newRoom = {
-      id: rooms.length + 1,
-      name: newRoomName || 'New Room',
-      maxPlayers,
-      currentPlayers: 1,
-      status: 'waiting',
-      gameType: 'risk'
-    };
-    setRooms([newRoom, ...rooms]);
-    setNewRoomName('');
+    setError('');
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/rooms/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newRoomName || 'New Room',
+          maxPlayers
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create room');
+      }
+
+      setRooms([data.room, ...rooms]);
+      setNewRoomName('');
+    } catch (err) {
+      setError(err.message || 'Failed to create room');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleJoinRoom = (roomId) => {
-    // In a real app, this would be an API call
-    console.log(`Joining room ${roomId}`);
-    navigate(`/game/${roomId}`);
+  const handleJoinRoom = async (roomId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/rooms/${roomId}/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        navigate(`/game/${roomId}`);
+      } else {
+        setError('Failed to join room');
+      }
+    } catch (err) {
+      console.error('Error joining room:', err);
+      setError('Failed to join room');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -82,6 +174,8 @@ const Lobby = () => {
         <h1>Game Lobby</h1>
         <p>Join or create a room to start playing</p>
       </div>
+
+      {error && <div className="error-message">{error}</div>}
 
       <div className="lobby-content">
         <div className="create-room">

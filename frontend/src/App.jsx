@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Lobby from './pages/Lobby';
 import Game from './pages/Game';
 import Profile from './pages/Profile';
+import Store from './pages/Store';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/game" element={<Layout><Game /></Layout>} />
           <Route path="/game/:matchId" element={<Layout><Game /></Layout>} />
           <Route path="/profile" element={<Layout><Profile /></Layout>} />
+          <Route path="/store" element={<Layout><Store /></Layout>} />
         </Routes>
       </div>
     </Router>

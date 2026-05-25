@@ -6,23 +6,33 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
+  url      = "mysql://gameboard_user:gameboard_password@localhost:3306/gameboard?schema=public"
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  avatarUrl String?
-  eloRating Int      @default(1200)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  messages  Message[]
-  games     Game[]
-  matches   Match[]
-  matchHistory MatchHistory[]
-  leaderboard Leaderboard?
+  id            Int        @id @default(autoincrement())
+  username      String     @unique
+  email         String     @unique
+  password      String
+  avatarUrl     String?
+  eloRating     Int        @default(1200)
+  balance       Int        @default(0)
+  bonusArmies   Int        @default(0)
+  cardMultiplier Int       @default(1)
+  startingArmies Int       @default(0)
+  specialPrivileges Json?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  messages      Message[]
+  games         Game[]
+  matches       Match[]
+  matchHistory  MatchHistory[]
+  leaderboard   Leaderboard?
+  purchases     UserPurchase[]
+  seasonPasses  UserSeasonPass[]
+  roomPlayers   RoomPlayer[]
+  matchPlayers  Match[]    @relation("MatchPlayer")
 }
 
 model Game {
@@ -59,20 +69,23 @@ model RoomPlayer {
 }
 
 model Match {
-  id         Int      @id @default(autoincrement())
-  name       String
-  gameState  Json
-  players    Json
-  status     String   @default("waiting")
-  winnerId   Int?
-  startedAt  DateTime @default(now())
-  endedAt    DateTime?
-  turnNumber Int      @default(1)
+  id              Int      @id @default(autoincrement())
+  name            String
+  gameState       Json
+  players         Json
+  status          String   @default("waiting")
+  winnerId        Int?
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  turnNumber      Int      @default(1)
   currentPlayerId Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [winnerId], references: [id])
-  playersRef User[]   @relation("MatchPlayer")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  winner          User?    @relation(fields: [winnerId], references: [id])
+  playersRef      User[]   @relation("MatchPlayer")
+  matchHistory    MatchHistory[]
+  game            Game?    @relation(fields: [gameId], references: [id])
+  gameId          Int?
 }
 
 model MatchHistory {
@@ -105,3 +118,55 @@ model Message {
   roomId    Int
   user      User     @relation(fields: [userId], references: [id])
   room      Room     @relation(fields: [roomId], references: [id])
+}
+
+// Store models for in-game purchases and season passes
+
+model StoreItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  price       Int
+  type        String
+  image       String?
+  features    Json?
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  purchases   UserPurchase[]
+}
+
+model SeasonPass {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String
+  price         Int
+  tier          String
+  durationWeeks Int
+  benefits      Json
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime?
+  userPasses    UserSeasonPass[]
+}
+
+model UserPurchase {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  itemId      Int
+  quantity    Int      @default(1)
+  totalPrice  Int
+  purchaseDate DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  item        StoreItem @relation(fields: [itemId], references: [id])
+}
+
+model UserSeasonPass {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  seasonPassId Int
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime
+  user        User     @relation(fields: [userId], references: [id])
+  seasonPass  SeasonPass @relation(fields: [seasonPassId], references: [id])
+}

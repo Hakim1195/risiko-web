@@ -1,17 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../components/Home.css';
 
 const Home = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className="home">
       {/* Hero Section */}
       <div className="home-hero">
         <h1 className="hero-title">WORLD CONQUEST</h1>
-        <p className="hero-subtitle">Le jeu de stratégie ultime - Prenez le contrôle du monde en lançant des attaques, défendant vos territoires et détruisant vos ennemis</p>
+        <p className="hero-subtitle">
+          {user 
+            ? `Bienvenue, ${user.username} ! Le jeu de stratégie ultime.` 
+            : 'Le jeu de stratégie ultime - Prenez le contrôle du monde.'}
+        </p>
         <div className="home-cta">
-          <Link to="/lobby" className="btn-primary">Commencer une partie</Link>
-          <Link to="/profile" className="btn-secondary">Voir mon profil</Link>
+          <Link to="/lobby" className="btn-primary">
+            {user ? 'Rejoindre une partie' : 'Commencer une partie'}
+          </Link>
+          <Link to="/store" className="btn-secondary">Boutique</Link>
+          {user ? (
+            <Link to="/profile" className="btn-secondary">Mon Profil</Link>
+          ) : (
+            <Link to="/register" className="btn-secondary">S'inscrire</Link>
+          )}
         </div>
       </div>
 
