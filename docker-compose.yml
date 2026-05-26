@@ -9,8 +9,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--log.level=DEBUG"
     ports:
       - "80:80"
       - "443:443"
@@ -18,7 +17,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
-      - ./traefik/acme.json:/acme.json
     networks:
       - game-network
 
@@ -29,8 +27,8 @@ services:
     environment:
       - MYSQL_DATABASE=gameboard
       - MYSQL_USER=gameboard_user
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=gameboard_password
+      - MYSQL_ROOT_PASSWORD=gameboard_root_password
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -59,7 +57,7 @@ services:
       - DB_PORT=3306
       - DB_NAME=gameboard
       - DB_USER=gameboard_user
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=gameboard_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
