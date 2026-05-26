@@ -22,11 +22,9 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
-import authRoutes from './routes/auth.routes';
-import roomRoutes from './routes/rooms.routes';
+import apiRoutes from './routes/index';
 
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
+app.use('/api', apiRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

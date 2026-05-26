@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { hashPassword, comparePassword } from '../utils/helpers';
-
-const prisma = new PrismaClient();
+import prisma from '../services/database.service';
 
 export class UserService {
   // Get user by ID

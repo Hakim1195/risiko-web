@@ -3,13 +3,13 @@ const express = require('express');
 const router = express.Router();
 
 // Controllers
-const authController = require('../controllers/auth.controller');
+const { AuthController } = require('../controllers/auth.controller');
 
 // Routes d'authentification
-router.post('/login', authController.login);
-router.post('/register', authController.register);
-router.post('/logout', authController.logout);
-router.get('/profile', authController.getProfile);
-router.put('/profile', authController.updateProfile);
+router.post('/login', AuthController.login);
+router.post('/register', AuthController.register);
+router.post('/logout', AuthController.logout);
+router.get('/profile', AuthController.getProfile);
+router.put('/profile', AuthController.updateProfile);
 
 module.exports = router;

@@ -29,9 +29,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'Game Board Strategy API' });
-});
+import apiRoutes from './routes/index';
+
+app.use('/api', apiRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket: any) => {
