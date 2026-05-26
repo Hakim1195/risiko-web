@@ -83,6 +83,6 @@ export class RoomService {
       where: { userId },
       include: { room: true }
     });
-    return roomPlayers.map(rp => rp.room);
+    return roomPlayers.map((rp: { room: any }) => rp.room);
   }
 }
