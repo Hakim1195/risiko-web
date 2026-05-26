@@ -66,6 +66,8 @@ services:
       - redis
     networks:
       - game-network
+    ports:
+      - "3000:3000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`api.game.local`)"
