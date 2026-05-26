@@ -29,8 +29,8 @@ const Home = () => {
       <div className="home-hero">
         <h1 className="hero-title">WORLD CONQUEST</h1>
         <p className="hero-subtitle">
-          {user 
-            ? `Bienvenue, ${user.username} ! Le jeu de stratégie ultime.` 
+          {user
+            ? `Bienvenue, ${user.username} ! Le jeu de stratégie ultime.`
             : 'Le jeu de stratégie ultime - Prenez le contrôle du monde.'}
         </p>
         <div className="home-cta">
@@ -109,6 +109,7 @@ const Home = () => {
         <div className="war-visual-content">
           <h2 className="war-title">Préparez-vous à la guerre</h2>
           <p className="war-description">Rejoignez des milliers de joueurs dans le monde pour conquérir les territoires et devenir le roi de la stratégie.</p>
+          <p className="war-description">Le jeu de stratégie qui transforme votre imagination en réalité de combat.</p>
         </div>
       </div>
 
