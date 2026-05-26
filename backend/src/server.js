@@ -12,6 +12,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Routes
 app.get('/', (req, res) => {
   res.json({ message: 'Game Board Strategy API' });
@@ -23,9 +29,9 @@ app.use('/api', routes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    success: false, 
+  console.error(`[${new Date().toISOString()}] Error:`, err.stack);
+  res.status(500).json({
+    success: false,
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : {}
   });
@@ -33,16 +39,17 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: 'Route not found' 
+  console.log(`[${new Date().toISOString()}] 404 Not Found: ${req.path}`);
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`[${new Date().toISOString()}] Server running on port ${PORT}`);
 });
 
 module.exports = app;

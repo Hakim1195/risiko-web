@@ -1,10 +1,10 @@
 // Frontend configuration
 const config = {
-  // API base URL
-  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api',
+  // API base URL - Use Traefik proxy URL in Docker environment
+  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://api.game.local/api',
   
-  // WebSocket URL
-  WS_URL: process.env.REACT_APP_WS_URL || 'ws://localhost:3000',
+  // WebSocket URL - Use Traefik proxy URL in Docker environment
+  WS_URL: process.env.REACT_APP_WS_URL || 'ws://api.game.local',
   
   // Application settings
   APP_NAME: 'Game Board Strategy',
