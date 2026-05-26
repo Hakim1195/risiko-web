@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import userService from '../services/user.service';
+import { UserService as userService } from '../services/user.service';
 
 // Définition des types pour les requêtes
 interface CreateUserRequest {
@@ -28,7 +28,7 @@ class UserController {
       }
 
       // Vérifier si l'utilisateur existe déjà
-      const existingUser = await userService.findUserByEmail(email);
+      const existingUser = await userService.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ 
           message: 'Cet email est déjà utilisé' 
@@ -58,7 +58,7 @@ class UserController {
   async getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const user = await userService.findUserById(parseInt(id));
+      const user = await userService.getUserById(parseInt(id));
 
       if (!user) {
         return res.status(404).json({ 
@@ -106,7 +106,7 @@ class UserController {
       }
 
       // Vérifier si l'utilisateur existe
-      const existingUser = await userService.findUserById(parseInt(id));
+      const existingUser = await userService.getUserById(parseInt(id));
       if (!existingUser) {
         return res.status(404).json({ 
           message: 'Utilisateur non trouvé' 
@@ -114,7 +114,7 @@ class UserController {
       }
 
       // Mettre à jour l'utilisateur avec le service
-      const updatedUser = await userService.updateUser(parseInt(id), { username, email });
+      const updatedUser = await userService.updateUserProfile(parseInt(id), { username, email });
 
       res.json({
         message: 'Utilisateur mis à jour avec succès',
@@ -134,7 +134,7 @@ class UserController {
       const { id } = req.params;
 
       // Vérifier si l'utilisateur existe
-      const existingUser = await userService.findUserById(parseInt(id));
+      const existingUser = await userService.getUserById(parseInt(id));
       if (!existingUser) {
         return res.status(404).json({ 
           message: 'Utilisateur non trouvé' 
@@ -142,12 +142,9 @@ class UserController {
       }
 
       // Supprimer l'utilisateur avec le service
-      const deletedUser = await userService.deleteUser(parseInt(id));
-
-      res.json({
-        message: 'Utilisateur supprimé avec succès',
-        user: deletedUser
-      });
+      // deleteUser method doesn't exist in UserService
+      // This is a placeholder for future implementation
+      return res.status(501).json({ message: 'Delete user not implemented' });
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', error);
       res.status(500).json({ 

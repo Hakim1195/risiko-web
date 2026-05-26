@@ -7,11 +7,14 @@ WORKDIR /app
 # Copier les fichiers package.json et package-lock.json
 COPY package*.json ./
 
-# Installer les dépendances avec npm install au lieu de npm ci pour éviter les problèmes de version
-RUN npm install --only=production
+# Installer les dépendances
+RUN npm install
 
 # Copier le reste du code source
 COPY . .
+
+# Compiler le TypeScript
+RUN npm run build
 
 # Exposer le port
 EXPOSE 3000
