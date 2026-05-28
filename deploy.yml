@@ -1,0 +1,34 @@
+name: Deploiement Local VM
+
+on:  
+  push:    
+    branches:      
+      - main
+
+jobs:  
+  deploy:    
+    name: Build et Déploiement Docker    
+    runs-on: self-hosted        
+    
+    steps:      
+      - name: Récupération du code source        
+        uses: actions/checkout@v4      
+
+      - name: Génération du fichier .env de production
+        # On crée le fichier .env dynamiquement sur le VPS avec les secrets GitHub
+        run: |
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "SECRET_KEY_FASTAPI=${{ secrets.SECRET_KEY_FASTAPI }}" >> .env
+          # Ajoute ici toutes tes autres variables sensibles
+
+      - name: Nettoyage léger
+        run: docker system prune -f
+
+      - name: Build et redémarrage fluide des conteneurs        
+        # up -d --build met à jour uniquement ce qui a changé sans tout casser
+        run: |          
+          docker-compose up -d --build
+
+      - name: Vérification du déploiement        
+        run: docker-compose ps
