@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
 from .api import api_router
 from .core.database import Base, engine
-from .api.sockets.connection_manager import ConnectionManager
+from .api.sockets.connection_manager import manager as connection_manager
 import models.models
 
 app = FastAPI(
@@ -19,9 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Create global connection manager
-connection_manager = ConnectionManager()
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)

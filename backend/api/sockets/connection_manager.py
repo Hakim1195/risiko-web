@@ -72,3 +72,6 @@ class ConnectionManager:
             websocket: The WebSocket connection
         """
         await websocket.send_text(message)
+
+# Create global instance of ConnectionManager
+manager = ConnectionManager()
