@@ -26,6 +26,7 @@ class GameEngine:
         # Route action to appropriate handler
         action_handlers = {
             "pass_turn": GameEngine._handle_pass_turn,
+            "deploy_units": GameEngine._handle_deploy_units,
         }
         
         # Call the appropriate handler
@@ -132,3 +133,55 @@ class GameEngine:
         # Phase 1: Attribution des Renforts - Calculate reinforcements
         if state.phase == 1:
             await GameEngine._calculate_reinforcements(state)
+    
+    @staticmethod
+    async def _handle_deploy_units(state: GameState, payload: dict) -> dict:
+        """
+        Handle the deploy units action (Phase 2).
+        
+        Validates:
+        - Game is in Phase 2
+        - Amount > 0
+        - Territory belongs to current player
+        - Player has enough units in stock
+        
+        Updates:
+        - Subtracts amount from player's units_in_stock
+        - Adds amount to territory's garrison
+        
+        Returns: Event with units_deployed type
+        """
+        # Extract parameters from payload
+        territory_id = payload.get("territory_id")
+        amount = payload.get("amount")
+        
+        # Validate game phase
+        if state.phase != 2:
+            raise ValueError("Le déploiement ne peut se faire que pendant la Phase 2")
+        
+        # Validate amount
+        if amount is None or amount <= 0:
+            raise ValueError("La quantité d'unités à déployer doit être supérieure à 0")
+        
+        # Validate territory ownership
+        if territory_id not in state.territories:
+            raise ValueError(f"Territoire {territory_id} inconnu")
+        
+        if state.territories[territory_id].owner_id != state.current_player_id:
+            raise ValueError(f"Vous ne contrôlez pas le territoire {territory_id}")
+        
+        # Validate units in stock
+        current_player = state.players[state.current_player_id]
+        if current_player.units_in_stock < amount:
+            raise ValueError(f"Vous n'avez pas assez d'unités en stock (disponibles: {current_player.units_in_stock}, demandées: {amount})")
+        
+        # Apply deployment
+        current_player.units_in_stock -= amount
+        state.territories[territory_id].garrison += amount
+        
+        # Return event
+        return {
+            "event_type": "units_deployed",
+            "territory_id": territory_id,
+            "amount": amount
+        }
