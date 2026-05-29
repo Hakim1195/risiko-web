@@ -52,9 +52,9 @@ L'économie de guerre est brutale. Le joueur reçoit de nouvelles troupes selon 
 * **1 seul déplacement autorisé** en fin de tour, depuis un territoire contrôlé vers un territoire adjacent également contrôlé. 
 * **Interdiction :** Il est interdit de faire converger plusieurs déplacements de troupes venant de territoires différents vers la même destination lors d'un même tour.
 
-#### Phase 5 : Récompense (Fin de tour)
-* Si le joueur a conquis au moins 1 territoire ennemi durant sa phase d'attaque, il gagne le droit de **piocher une carte Tactique** (ajoutée à sa main).
-* *Note : On ne pioche qu'une seule carte maximum par tour, peu importe le nombre de territoires conquis.*
+#### Phase 5 : Cartes Événement (Fin de tour)
+* À la fin de son tour, le joueur gagne automatiquement le droit de **piocher une carte Tactique** (ajoutée à sa main), qu'il ait attaqué ou non.
+* *Note : La limite de la main reste fixée à 5 cartes.*
 
 ---
 

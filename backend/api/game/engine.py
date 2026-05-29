@@ -146,14 +146,47 @@ class GameEngine:
         return total_reinforcements
     
     @staticmethod
+    async def _draw_card_for_current_player(state: GameState):
+        """
+        Draw a card for the current player during Phase 5 (Event Cards).
+        """
+        current_player = state.players[state.current_player_id]
+        
+        # Check if player has less than 5 cards in hand
+        if len(current_player.cards_in_hand) < 5:
+            # Define loot table with card weights
+            loot_table = {
+                "card_renfort_3": 60,
+                "card_shield_1": 30,
+                "card_airborne_1": 10
+            }
+            
+            # Draw a card based on weights
+            drawn_card = random.choices(
+                list(loot_table.keys()),
+                weights=list(loot_table.values())
+            )[0]
+            
+            # Add the drawn card to the player's hand
+            current_player.cards_in_hand.append(drawn_card)
+    
+    @staticmethod
     async def _advance_phase(state: GameState):
         """
         Advance to the next phase, and end the turn if we've completed all phases.
         """
         state.phase += 1
         
+        # If phase reaches 5 (Event Cards phase)
+        if state.phase == 5:
+            # Draw a card for the current player
+            await GameEngine._draw_card_for_current_player(state)
+            # Reset phase to 0
+            state.phase = 0
+            # End the turn
+            await GameEngine._end_turn(state)
         # Si la phase dépasse 5 (fin de la phase d'attaque/mouvement du GDD)
-        if state.phase > 5:
+        elif state.phase > 5:
             state.phase = 0
             await GameEngine._end_turn(state)
         

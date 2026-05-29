@@ -1,31 +1,23 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est de préparer les schémas de données et les cycles de nettoyage du Game Engine pour accueillir un système évolutif de 15 effets de base (cartes et pouvoirs), selon une architecture pilotée par les données (Data-Driven).
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter la "Phase 5 : Cartes Événement" (La pioche automatique) dans le Game Engine.
 
 **Contraintes Techniques Absolues :**
-1. Flexibilité : Remplacer les verrous stricts par des compteurs (budgets d'actions) ou des états numériques.
-2. Cycle de vie : Le moteur doit automatiquement décrémenter les compteurs de fin de tour (durée des effets) lors du changement de joueur.
+1. Table de Butin (Loot Table) : Utilise `random.choices` avec des poids (weights) pour simuler la probabilité des cartes.
+2. Limite de main : Un joueur ne peut pas dépasser 5 cartes en main. S'il en a 5, il ne pioche pas.
+3. Ergonomie : La Phase 5 est automatique. Dès que le moteur entre en Phase 5, il pioche la carte, l'ajoute au joueur, puis passe immédiatement au tour suivant.
 
-**Instructions de Livraison (Étape 12 - Infrastructure des Modificateurs globaux) :**
-Fournis uniquement le code complet et mis à jour pour ces 2 fichiers :
+**Instructions de Livraison (Étape 13 - Phase 5 Pioche Automatique) :**
+Fournis uniquement le code mis à jour pour le fichier `backend/api/game/engine.py` devant inclure :
 
-**1. Le fichier `backend/api/game/state_schemas.py` devant inclure :**
-Dans `PlayerState`, ajoute ces variables d'état (conserve les existantes) :
-* `max_cards_playable_this_turn: int = 2` (Budget de base)
-* `bonus_attack_dice: int = 0` (Modificateur de combat)
-* `bonus_defense_dice: int = 0` (Modificateur de combat)
-* `guaranteed_sixes_attack: int = 0` (Nombre de dés forcés à 6)
-* `airborne_attacks_left: int = 0` (Attaques non adjacentes autorisées)
-* `vampiric_attack_active: bool = False` (Inversion des pertes en attaque)
-* `vampiric_defense_active: bool = False` (Inversion des pertes en défense)
-* `immune_to_contamination: bool = False` (Protection environnementale)
+1. L'ajout d'une méthode statique asynchrone `_draw_card_for_current_player(state: GameState)` qui doit :
+   - Vérifier si `len(state.players[state.current_player_id].cards_in_hand) < 5`.
+   - Si oui, définir une Loot Table (dictionnaire) : `{"card_renfort_3": 60, "card_shield_1": 30, "card_airborne_1": 10}`.
+   - Tirer une carte au sort en utilisant les poids de la Loot Table.
+   - Ajouter l'ID de la carte tirée dans la liste `cards_in_hand` du joueur.
 
-Dans `TerritoryState`, ajoute ces variables d'état (conserve les existantes) :
-* `shield_turns_left: int = 0` (Immunité aux attaques)
-* `frozen_turns_left: int = 0` (Incapacité d'attaquer depuis ce territoire)
-
-**2. Le fichier `backend/api/game/engine.py` devant inclure :**
-* Dans les méthodes de validation existantes (`_handle_attack` et `_handle_move_units`), ajoute la vérification du gel : si le territoire source a `frozen_turns_left > 0`, lever une `ValueError` ("Ce territoire est gelé et ne peut pas agir").
-* Dans `_handle_attack`, adapte la vérification d'adjacence : si `current_player.airborne_attacks_left > 0`, l'attaque est valide même si les territoires ne sont pas adjacents. Si l'attaque non adjacente est consommée, faire `airborne_attacks_left -= 1`.
-* Dans `_end_turn`, juste avant de passer la main au joueur suivant, implémente la gestion du temps (le "Tick" des effets) :
-  - Parcourir TOUS les territoires du plateau. Si `shield_turns_left > 0`, faire `-1`. Si `frozen_turns_left > 0`, faire `-1`.
-  - Réinitialiser les modificateurs temporaires du joueur qui vient de finir son tour (`bonus_attack_dice = 0`, `bonus_defense_dice = 0`, `guaranteed_sixes_attack = 0`, `vampiric_attack_active = False`, etc.).
-  - Remettre `cards_played_this_turn = 0` pour le joueur qui termine.
+2. La modification de la méthode `_advance_phase(state: GameState)` :
+   - Actuellement, tu as une condition `if state.phase > 5: state.phase = 0 ...`. Change cette logique.
+   - Si la phase atteint `5` (Phase 5) : 
+     - Appelle `await GameEngine._draw_card_for_current_player(state)`.
+     - Remets `state.phase = 0`.
+     - Appelle `await GameEngine._end_turn(state)`.
+   - La condition `if state.phase == 1:` (Renforts) reste inchangée.
