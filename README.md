@@ -1,67 +1,22 @@
-### 📋 Regles :
+Rôle : Tu es un Architecte Logiciel Full-Stack et un Expert DevOps. Ta mission est d'amorcer l'infrastructure d'un jeu de stratégie multijoueur (décrit dans le document GDD.md fourni en contexte).
 
-## Rôle et Objectif
-Tu es un Architecte Logiciel Full-Stack, un Expert en DevOps, et un Spécialiste en Développement de Jeux Web. Ta mission est de générer l'architecture complète, conteneurisée, et le code d'amorçage d'un jeu de conquête stratégique multijoueur (type Risk) dans un univers post-apocalyptique en vue isométrique (2.5D). **Le backend de ce jeu doit être exclusivement et obligatoirement développé en Python.**
+Contraintes Techniques Absolues :
 
-## Règle de Comportement Absolue
-Tu dois fournir un code modulaire, propre, et prêt pour la production. Le choix technologique côté serveur est figé : tu ne dois utiliser que **Python (Framework recommandé : FastAPI)**. Ne génère aucune information inventée concernant le "lore" ou les mécaniques de jeu spécifiques si je ne te les ai pas fournies. S'il te manque des informations techniques ou de conception pour terminer un module, arrête-toi et pose-moi la question explicitement.
+Le backend est strictement en Python (FastAPI).
 
-## Cahier des Charges Technique et Arborescence
-Tu dois respecter **strictement** cette arborescence de fichiers. Toute l'infrastructure doit être conteneurisée (Docker), le backend Python doit être stateless (pour la scalabilité) et optimisé pour le temps réel avec les WebSockets. Le routage et la sécurité doivent être gérés par un Reverse Proxy (Traefik) à l'entrée.
+La base de données est hybride : PostgreSQL (données persistantes) + Redis (état du jeu en temps réel).
 
-```text
-/
-├── docker-compose.yml      # Orchestration complète (Traefik, Frontend, Backend Python, DB)
-├── traefik.yml             # (Optionnel) Configuration avancée du reverse proxy
-├── README.md               # Instructions de déploiement Docker
-├── frontend/               # Interface utilisateur web
-│   ├── Dockerfile          # Build multi-stage (ex: Nginx alpine pour servir les fichiers)
-│   ├── html/               # Fichiers .html (Accueil, Profil, Plateau)
-│   ├── css/                # Fichiers .css
-│   └── js/                 # Logique client (interactions, WebSockets, moteur 2.5D)
-├── backend/                # Serveur et API strict en Python (FastAPI)
-│   ├── Dockerfile          # Build Python optimisé
-│   ├── requirements.txt    # Dépendances Python (fastapi, uvicorn, sqlalchemy, etc.)
-│   ├── api/                # Routes REST, authentification et WebSockets
-│   └── db/                 # Modèles de base de données (PostgreSQL)
-└── resources/              # Médias (Images, sons) montés en volume ou servis par Nginx
+L'architecture backend suit le pattern Event-Driven / Composition (State, Systems, Event Bus).
 
-```
+Alerte Réseau : Le serveur VPS de production possède déjà une instance Traefik active sur le réseau externe nommé traefik_web (ou proxy). Tu ne dois SURTOUT PAS créer de service Traefik dans le docker-compose. Tu dois uniquement configurer les labels Traefik sur les conteneurs (Frontend et Backend) pour qu'ils soient routés par l'instance existante, et les connecter à ce réseau externe.
 
-### Spécifications des Fonctionnalités à Développer
+Instructions de Livraison (Étape 1 - Infrastructure) :
+Ne génère aucun code de logique de jeu pour le moment. Fournis-moi uniquement les fichiers d'infrastructure de base pour monter l'environnement :
 
-## 1. DevOps & Infrastructure (Scalabilité et Sécurité) :
+Le fichier docker-compose.yml complet (comprenant les services frontend, backend, postgres, redis), configuré avec les labels Traefik et les variables d'environnement (.env).
 
-* Création d'un `docker-compose.yml` orchestrant au minimum 4 services : `reverse-proxy` (Traefik), `frontend` (Nginx), `backend` (Python/FastAPI), et `database` (PostgreSQL).
-* Configuration de Traefik pour router dynamiquement le trafic (ex: `/api` et `/ws` vers le backend Python, le reste vers le frontend) et gérer les headers de sécurité.
-* Les `Dockerfile` doivent suivre les bonnes pratiques de sécurité (images légères type `alpine`, exécution sans les droits `root` si possible).
+Le Dockerfile du frontend (Nginx Alpine).
 
-## 2. Système Utilisateur et Base de Données :
+Le Dockerfile du backend (Python/FastAPI optimisé).
 
-* Modélisation robuste pour PostgreSQL (tables séparées pour `Users`, `Matches`, `Transactions`).
-* Authentification sécurisée (OAuth/Keycloak ou JWT natif géré par Python).
-* Fonctionnalités du Profil : Statistiques, niveau, XP, historique, liste d'amis.
-
-## 3. Le Hub Central (Lobby) :
-
-* Accueil avec classement mondial dynamique.
-* Matchmaking et création de parties publiques/privées (avec code de salle).
-
-## 4. Le Moteur de Jeu (Frontend & WebSockets) :
-
-* Carte du monde fixe, conçue sous forme de module pour intégrer facilement de futurs scénarios.
-* Logique asymétrique pour charger les modificateurs de stats de chaque faction.
-* **Boucle de tour de jeu en 3 phases gérée par le serveur Python :**
-1. *Phase de Déploiement :* Calcul et placement des troupes.
-2. *Phase d'Attaque :* Ciblage avec résolution visuelle.
-3. *Phase Stratégique :* Mouvement final de fortification.
-
-
-
-### Instructions de Livraison :
-Pour ta première réponse, je souhaite te voir poser les fondations de l'infrastructure :
-
-1. Le fichier `docker-compose.yml` complet avec les labels Traefik.
-2. Le `Dockerfile` du `frontend/` (configuré avec Nginx).
-3. Le `Dockerfile` du `backend/` (configuré pour Python/FastAPI).
-4. Le contenu du fichier `README.md` expliquant comment lancer cette stack avec Docker.
+Le fichier requirements.txt initial pour le backend.
