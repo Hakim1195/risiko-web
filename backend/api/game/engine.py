@@ -1,8 +1,9 @@
 import asyncio
+import random
 from typing import Dict, Any
 from backend.api.game.state_manager import GameStateManager
 from backend.api.game.state_schemas import GameState
-from backend.api.game.map_constants import CONTINENTS
+from backend.api.game.map_constants import CONTINENTS, ADJACENCY
 
 
 class GameEngine:
@@ -27,6 +28,7 @@ class GameEngine:
         action_handlers = {
             "pass_turn": GameEngine._handle_pass_turn,
             "deploy_units": GameEngine._handle_deploy_units,
+            "attack_territory": GameEngine._handle_attack,
         }
         
         # Call the appropriate handler
@@ -74,6 +76,8 @@ class GameEngine:
             if state.players[next_player_id].status == "alive":
                 state.current_player_id = next_player_id
                 state.current_turn += 1
+                # Reset the conquered flag for the next player
+                state.players[next_player_id].has_conquered_this_turn = False
                 return
                 
         # Si on arrive ici, un seul joueur est en vie (fin de partie)
@@ -184,4 +188,120 @@ class GameEngine:
             "event_type": "units_deployed",
             "territory_id": territory_id,
             "amount": amount
+        }
+    
+    @staticmethod
+    async def _handle_attack(state: GameState, payload: dict) -> dict:
+        """
+        Handle the attack territory action (Phase 3).
+        
+        Validates:
+        - Game is in Phase 3
+        - Territories are adjacent
+        - Attacker owns the attacking territory
+        - Defender doesn't own the defending territory
+        - Attacker has enough units (at least 2, 1 must remain)
+        - Valid number of dice (1-3)
+        
+        Executes combat and updates game state accordingly.
+        """
+        # Extract parameters from payload
+        attacker_territory_id = payload.get("attacker_territory_id")
+        defender_territory_id = payload.get("defender_territory_id")
+        attacker_dice = payload.get("attacker_dice")
+        
+        # Validate game phase
+        if state.phase != 3:
+            raise ValueError("Les attaques ne peuvent se faire que pendant la Phase 3")
+        
+        # Validate territories are adjacent
+        if defender_territory_id not in ADJACENCY.get(attacker_territory_id, []):
+            raise ValueError(f"Les territoires {attacker_territory_id} et {defender_territory_id} ne sont pas adjacents")
+        
+        # Validate attacker owns the attacking territory
+        if state.territories[attacker_territory_id].owner_id != state.current_player_id:
+            raise ValueError(f"Vous ne contrôlez pas le territoire attaquant {attacker_territory_id}")
+        
+        # Validate defender doesn't own the defending territory
+        if state.territories[defender_territory_id].owner_id == state.current_player_id:
+            raise ValueError(f"Vous ne pouvez pas attaquer votre propre territoire {defender_territory_id}")
+        
+        # Validate attacker has enough units (at least 2, 1 must remain)
+        attacker_garrison = state.territories[attacker_territory_id].garrison
+        if attacker_garrison <= 1:
+            raise ValueError(f"Le territoire attaquant {attacker_territory_id} doit avoir au moins 2 unités")
+        
+        # Validate valid number of dice
+        if attacker_dice not in [1, 2, 3]:
+            raise ValueError("Le nombre de dés attaquants doit être 1, 2 ou 3")
+        
+        # Validate attacker has enough units for the dice count
+        if attacker_garrison <= attacker_dice:
+            raise ValueError(f"Le territoire attaquant {attacker_territory_id} n'a pas assez d'unités pour l'attaque")
+        
+        # Calculate defender dice (max 3, but limited by garrison)
+        defender_garrison = state.territories[defender_territory_id].garrison
+        defender_dice = min(3, defender_garrison)
+        
+        # Roll dice for both sides
+        attacker_rolls = sorted([random.randint(1, 6) for _ in range(attacker_dice)], reverse=True)
+        defender_rolls = sorted([random.randint(1, 6) for _ in range(defender_dice)], reverse=True)
+        
+        # Compare dice (highest vs highest, etc.)
+        attacker_losses = 0
+        defender_losses = 0
+        min_dice = min(len(attacker_rolls), len(defender_rolls))
+        
+        for i in range(min_dice):
+            if attacker_rolls[i] > defender_rolls[i]:
+                defender_losses += 1
+            else:  # Defender wins on tie
+                attacker_losses += 1
+        
+        # Apply losses to garrisons
+        state.territories[attacker_territory_id].garrison -= attacker_losses
+        state.territories[defender_territory_id].garrison -= defender_losses
+        
+        # Check if defender territory is conquered
+        conquered = False
+        if state.territories[defender_territory_id].garrison <= 0:
+            conquered = True
+            
+            # SAUVEGARDE CRITIQUE : Garder l'ID du défenseur en mémoire avant écrasement
+            original_defender_id = state.territories[defender_territory_id].owner_id
+            
+            # Transfer ownership
+            state.territories[defender_territory_id].owner_id = state.current_player_id
+            # Move attacker's units to the conquered territory
+            state.territories[defender_territory_id].garrison = attacker_dice
+            # Remove attacker's units from the attacking territory
+            state.territories[attacker_territory_id].garrison -= attacker_dice
+            # Mark that the player has conquered a territory this turn
+            state.players[state.current_player_id].has_conquered_this_turn = True
+            
+            # Check if original defender has any territories left
+            defender_has_territories = False
+            for territory in state.territories.values():
+                if territory.owner_id == original_defender_id:
+                    defender_has_territories = True
+                    break
+            
+            if not defender_has_territories:
+                # Defender eliminated
+                state.players[original_defender_id].status = "eliminated"
+        
+        # Return event with combat results
+        return {
+            "event_type": "attack_result",
+            "attacker_territory_id": attacker_territory_id,
+            "defender_territory_id": defender_territory_id,
+            "attacker_dice": attacker_dice,
+            "defender_dice": defender_dice,
+            "attacker_rolls": attacker_rolls,
+            "defender_rolls": defender_rolls,
+            "attacker_losses": attacker_losses,
+            "defender_losses": defender_losses,
+            "conquered": conquered,
+            "new_attacker_garrison": state.territories[attacker_territory_id].garrison,
+            "new_defender_garrison": state.territories[defender_territory_id].garrison
         }
