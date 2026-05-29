@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, Any
 from backend.api.game.state_manager import GameStateManager
 from backend.api.game.state_schemas import GameState
+from backend.api.game.map_constants import CONTINENTS
 
 
 class GameEngine:
@@ -77,6 +78,46 @@ class GameEngine:
         # Si on arrive ici, un seul joueur est en vie (fin de partie)
     
     @staticmethod
+    async def _calculate_reinforcements(state: GameState):
+        """
+        Calculate reinforcements for the current player based on:
+        1. Number of territories owned (territories // 3, floor)
+        2. Continent bonuses (if 100% control of a continent)
+        """
+        current_player = state.players[state.current_player_id]
+        
+        # Count territories owned by current player
+        owned_territories = 0
+        for territory_id, territory in state.territories.items():
+            if territory.owner_id == state.current_player_id:
+                owned_territories += 1
+        
+        # Base reinforcement calculation: territories // 3 (floor)
+        base_reinforcements = owned_territories // 3
+        
+        # Check continent bonuses
+        continent_bonus = 0
+        for continent_name, continent_data in CONTINENTS.items():
+            # Check if player controls all territories in this continent
+            continent_territories = set(continent_data["territory_ids"])
+            player_territories = set()
+            for territory_id, territory in state.territories.items():
+                if territory.owner_id == state.current_player_id and territory_id in continent_territories:
+                    player_territories.add(territory_id)
+            
+            # If player controls all territories in continent, add bonus
+            if player_territories == continent_territories:
+                continent_bonus += continent_data["bonus"]
+        
+        # Total reinforcements = base + continent bonuses
+        total_reinforcements = base_reinforcements + continent_bonus
+        
+        # Add to player's stock
+        current_player.units_in_stock += total_reinforcements
+        
+        return total_reinforcements
+    
+    @staticmethod
     async def _advance_phase(state: GameState):
         """
         Advance to the next phase, and end the turn if we've completed all phases.
@@ -87,3 +128,7 @@ class GameEngine:
         if state.phase > 5:
             state.phase = 0
             await GameEngine._end_turn(state)
+        
+        # Phase 1: Attribution des Renforts - Calculate reinforcements
+        if state.phase == 1:
+            await GameEngine._calculate_reinforcements(state)

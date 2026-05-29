@@ -7,6 +7,8 @@ class PlayerState(BaseModel):
     faction: str  # Ex: "Sintetici", "Mutanti", etc. (à définir dans GDD)
     units_in_stock: int  # Unités en réserve
     status: str  # "alive" ou "eliminated"
+    cards_in_hand: List[str] = []
+    cards_played_this_turn: int = 0
 
 class TerritoryState(BaseModel):
     """État d'un territoire dans la partie."""

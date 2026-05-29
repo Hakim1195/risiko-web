@@ -1,23 +1,22 @@
-**Rôle :** Tu es un Architecte Logiciel Expert en Python. Ta mission est de développer le "Cœur Logique" (Game Engine) du jeu, qui manipulera l'état stocké dans Redis selon les règles du GDD fourni en contexte.
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter la logique de la "Phase 1 : Attribution des Renforts" et de préparer le terrain pour le système de cartes, en respectant scrupuleusement le GDD.md mis à jour.
 
 **Contraintes Techniques Absolues :**
-1. Indépendance : Le Game Engine ne doit faire aucun appel WebSocket ni API REST. Il ne fait que de la logique pure et communique uniquement avec le `GameStateManager`.
-2. Asynchronisme : Les méthodes doivent être asynchrones pour interagir avec Redis.
-3. Sécurité de l'état : Chaque action doit commencer par vérifier si c'est bien le tour du joueur (`current_player_id`) et s'il est toujours en vie (`status == "alive"`).
+1. Performances : Aucune requête PostgreSQL ne doit être faite pendant la boucle de jeu. Les données de la carte doivent être statiques.
+2. Schémas : Utilisation stricte de Pydantic V2 pour la mise à jour des états.
+3. Logique GDD : Le calcul des renforts (Territoires / 3, arrondi inférieur, AUCUN minimum) + Bonus de continents doit être exact.
 
-**Instructions de Livraison (Étape 7 - Game Engine Base) :**
-Génère le code modulaire, propre et commenté pour le nouveau fichier suivant :
+**Instructions de Livraison (Étape 8 - Constantes, Schémas et Phase 1) :**
+Fournis le code complet pour ces 3 fichiers :
 
-**1. Le fichier `backend/api/game/engine.py` devant inclure :**
-* Une classe statique ou un singleton `GameEngine`.
-* Une méthode principale `process_action(room_id: int, player_id: int, action_type: str, payload: dict) -> dict`. Cette méthode doit :
-  - Récupérer l'état via `GameStateManager.get_game_state(room_id)`.
-  - Vérifier que c'est bien le tour du `player_id` (sinon lever une ValueError "Ce n'est pas votre tour").
-  - Rediriger vers des sous-méthodes spécifiques selon l'`action_type` (ex: utiliser un `match/case` ou un dictionnaire de routage).
-  - Sauvegarder le nouvel état via `GameStateManager.save_game_state`.
-  - Retourner un dictionnaire décrivant l'événement qui vient de se produire (pour que les WebSockets puissent le diffuser plus tard).
-* Une méthode `_end_turn(state: GameState)` qui calcule à qui est le prochain tour (en sautant les joueurs éliminés) et incrémente le `current_turn`.
-* Une méthode `_advance_phase(state: GameState)` qui passe à la phase suivante (0 à 5) et appelle `_end_turn` si on dépasse la phase 5.
-* Une action de test simple : implémente l'action `action_type = "pass_turn"` qui appelle simplement `_advance_phase`.
+**1. Le NOUVEAU fichier `backend/api/game/map_constants.py` devant inclure :**
+* Un dictionnaire `CONTINENTS` qui définit les 5 continents (Eurasia, Americhe, Afarik, Aurora, Neksis). Pour chaque continent, tu dois lister son `bonus` (voir GDD) et une liste de `territory_ids` qui lui appartiennent. (Invente la répartition des 43 IDs de territoires comme tu le souhaites pour le moment, ex: Eurasia de 1 à 12, Americhe de 13 à 21, etc., en t'assurant que tous les IDs de 1 à 43 sont répartis).
 
-**Ne code pas encore les logiques complexes d'attaque ou de déplacement.** L'objectif est d'obtenir l'orchestrateur de base (le "cerveau") capable de faire tourner les tours et les phases de manière sécurisée.
+**2. La mise à jour de `backend/api/game/state_schemas.py` devant inclure :**
+* Dans `PlayerState`, ajoute : `cards_in_hand: List[str] = []` (pour stocker les IDs ou noms des cartes) et `cards_played_this_turn: int = 0`.
+
+**3. La mise à jour de `backend/api/game/engine.py` devant inclure :**
+* L'import de `CONTINENTS` depuis `map_constants.py`.
+* L'ajout d'une méthode `_calculate_reinforcements(state: GameState) -> int`. Cette méthode doit compter les territoires du `state.current_player_id`, appliquer la règle (Territoires // 3, sans minimum), vérifier les continents possédés à 100%, ajouter les bonus, puis créditer le `units_in_stock` du joueur.
+* La modification de la méthode `_advance_phase(state: GameState)` : Juste après avoir fait `state.phase += 1`, si la nouvelle phase est `1`, le moteur doit automatiquement appeler `await GameEngine._calculate_reinforcements(state)`.
+
+Ne touche à rien d'autre. Fournis uniquement le code modulaire pour ces trois éléments.
