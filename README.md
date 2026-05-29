@@ -19,4 +19,4 @@ Le Dockerfile du frontend (Nginx Alpine).
 
 Le Dockerfile du backend (Python/FastAPI optimisé).
 
-Le fichier requirements.txt initial pour le backend.
+Le fichier requirements.txt initial pour le backend. 
