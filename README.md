@@ -1,28 +1,31 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter la "Phase 4 : Mouvement Stratégique" (Fortification) dans le Game Engine en utilisant une architecture de "Budget d'Action" pour faciliter l'ajout futur de cartes à pouvoirs spéciaux.
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est de préparer les schémas de données et les cycles de nettoyage du Game Engine pour accueillir un système évolutif de 15 effets de base (cartes et pouvoirs), selon une architecture pilotée par les données (Data-Driven).
 
 **Contraintes Techniques Absolues :**
-1. Architecture par Budget : On n'utilise pas de booléen bloquant, mais un compteur `strategic_moves_left`.
-2. Règles de base : Le joueur reçoit 1 mouvement par tour. Les territoires source et cible doivent lui appartenir et être adjacents. Il faut laisser au moins 1 troupe sur le territoire source.
-3. Ergonomie intelligente : Si le solde de mouvements tombe à 0 après l'action, le moteur passe automatiquement à la Phase 5.
+1. Flexibilité : Remplacer les verrous stricts par des compteurs (budgets d'actions) ou des états numériques.
+2. Cycle de vie : Le moteur doit automatiquement décrémenter les compteurs de fin de tour (durée des effets) lors du changement de joueur.
 
-**Instructions de Livraison (Étape 11 - Phase 4 Mouvement Dynamique) :**
-Fournis uniquement le code mis à jour pour ces 2 fichiers :
+**Instructions de Livraison (Étape 12 - Infrastructure des Modificateurs globaux) :**
+Fournis uniquement le code complet et mis à jour pour ces 2 fichiers :
 
 **1. Le fichier `backend/api/game/state_schemas.py` devant inclure :**
-* L'ajout de `strategic_moves_left: int = 0` dans la classe `PlayerState` (en remplacement de toute idée de booléen `has_moved`).
+Dans `PlayerState`, ajoute ces variables d'état (conserve les existantes) :
+* `max_cards_playable_this_turn: int = 2` (Budget de base)
+* `bonus_attack_dice: int = 0` (Modificateur de combat)
+* `bonus_defense_dice: int = 0` (Modificateur de combat)
+* `guaranteed_sixes_attack: int = 0` (Nombre de dés forcés à 6)
+* `airborne_attacks_left: int = 0` (Attaques non adjacentes autorisées)
+* `vampiric_attack_active: bool = False` (Inversion des pertes en attaque)
+* `vampiric_defense_active: bool = False` (Inversion des pertes en défense)
+* `immune_to_contamination: bool = False` (Protection environnementale)
+
+Dans `TerritoryState`, ajoute ces variables d'état (conserve les existantes) :
+* `shield_turns_left: int = 0` (Immunité aux attaques)
+* `frozen_turns_left: int = 0` (Incapacité d'attaquer depuis ce territoire)
 
 **2. Le fichier `backend/api/game/engine.py` devant inclure :**
-* Dans `_end_turn`, ajoute la réinitialisation du budget pour le prochain joueur : `state.players[next_player_id].strategic_moves_left = 1`.
-* L'ajout de `"move_units": GameEngine._handle_move_units` dans `action_handlers`.
-* La création de la méthode asynchrone `_handle_move_units(state: GameState, payload: dict) -> dict` qui doit :
-  - Extraire `source_territory_id`, `target_territory_id`, et `amount`.
-  - Vérifier : `state.phase == 4`.
-  - Vérifier : `state.players[state.current_player_id].strategic_moves_left > 0` (Sinon lever ValueError "Plus de mouvements disponibles").
-  - Vérifier : `amount > 0`.
-  - Vérifier : `target_territory_id` est dans `ADJACENCY.get(source_territory_id, [])`.
-  - Vérifier : Le joueur possède bien les DEUX territoires.
-  - Vérifier : `state.territories[source_territory_id].garrison > amount` (minimum 1 troupe restante à la source).
-  - Si valide : Soustraire `amount` de la source, l'ajouter à la cible.
-  - Décrémenter le budget : `state.players[state.current_player_id].strategic_moves_left -= 1`.
-  - SI (et seulement si) `strategic_moves_left == 0`, alors appeler `await GameEngine._advance_phase(state)` pour passer à la Phase 5.
-  - Retourner l'événement `"units_moved"`.
+* Dans les méthodes de validation existantes (`_handle_attack` et `_handle_move_units`), ajoute la vérification du gel : si le territoire source a `frozen_turns_left > 0`, lever une `ValueError` ("Ce territoire est gelé et ne peut pas agir").
+* Dans `_handle_attack`, adapte la vérification d'adjacence : si `current_player.airborne_attacks_left > 0`, l'attaque est valide même si les territoires ne sont pas adjacents. Si l'attaque non adjacente est consommée, faire `airborne_attacks_left -= 1`.
+* Dans `_end_turn`, juste avant de passer la main au joueur suivant, implémente la gestion du temps (le "Tick" des effets) :
+  - Parcourir TOUS les territoires du plateau. Si `shield_turns_left > 0`, faire `-1`. Si `frozen_turns_left > 0`, faire `-1`.
+  - Réinitialiser les modificateurs temporaires du joueur qui vient de finir son tour (`bonus_attack_dice = 0`, `bonus_defense_dice = 0`, `guaranteed_sixes_attack = 0`, `vampiric_attack_active = False`, etc.).
+  - Remettre `cards_played_this_turn = 0` pour le joueur qui termine.

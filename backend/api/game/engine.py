@@ -65,6 +65,26 @@ class GameEngine:
         Calculate whose turn it is next (skipping eliminated players)
         and increment the current turn.
         """
+        # Manage effect timers (decrement turns left for shields and frozen status)
+        for territory in state.territories.values():
+            if territory.shield_turns_left > 0:
+                territory.shield_turns_left -= 1
+            if territory.frozen_turns_left > 0:
+                territory.frozen_turns_left -= 1
+        
+        # Reset temporary modifiers for the player who just finished their turn
+        current_player = state.players[state.current_player_id]
+        current_player.bonus_attack_dice = 0
+        current_player.bonus_defense_dice = 0
+        current_player.guaranteed_sixes_attack = 0
+        current_player.airborne_attacks_left = 0
+        current_player.vampiric_attack_active = False
+        current_player.vampiric_defense_active = False
+        current_player.immune_to_contamination = False
+        
+        # Reset cards played this turn for the player who just finished
+        current_player.cards_played_this_turn = 0
+        
         # Extraire et trier les ID de joueurs de manière sécurisée
         player_ids = sorted(list(state.players.keys()))
         current_index = player_ids.index(state.current_player_id)
@@ -217,9 +237,24 @@ class GameEngine:
         if state.phase != 3:
             raise ValueError("Les attaques ne peuvent se faire que pendant la Phase 3")
         
-        # Validate territories are adjacent
-        if defender_territory_id not in ADJACENCY.get(attacker_territory_id, []):
+        # Check if airborne attack is allowed
+        current_player = state.players[state.current_player_id]
+        is_adjacent = defender_territory_id in ADJACENCY.get(attacker_territory_id, [])
+        
+        # If airborne attacks are available, allow non-adjacent attacks
+        if not is_adjacent and current_player.airborne_attacks_left > 0:
+            # This is an airborne attack, consume the attack
+            current_player.airborne_attacks_left -= 1
+        elif not is_adjacent:
             raise ValueError(f"Les territoires {attacker_territory_id} et {defender_territory_id} ne sont pas adjacents")
+
+        # Validate that the defender's territory is not shielded
+        if state.territories[defender_territory_id].shield_turns_left > 0:
+            raise ValueError(f"Le territoire {defender_territory_id} est protégé par un bouclier !")
+        
+        # Validate that the attacker's territory is not frozen
+        if state.territories[attacker_territory_id].frozen_turns_left > 0:
+            raise ValueError("Ce territoire est gelé et ne peut pas agir")
         
         # Validate attacker owns the attacking territory
         if state.territories[attacker_territory_id].owner_id != state.current_player_id:
@@ -351,6 +386,10 @@ class GameEngine:
        # Validate target territory is adjacent to source territory
        if target_territory_id not in ADJACENCY.get(source_territory_id, []):
            raise ValueError(f"Les territoires {source_territory_id} et {target_territory_id} ne sont pas adjacents")
+       
+       # Validate that the source territory is not frozen
+       if state.territories[source_territory_id].frozen_turns_left > 0:
+           raise ValueError("Ce territoire est gelé et ne peut pas agir")
        
        # Validate player owns both territories
        if state.territories[source_territory_id].owner_id != state.current_player_id:
