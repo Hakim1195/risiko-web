@@ -1,32 +1,28 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter la "Phase 3 : Attaques" (Combat aux dés) dans le Game Engine.
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter la "Phase 4 : Mouvement Stratégique" (Fortification) dans le Game Engine en utilisant une architecture de "Budget d'Action" pour faciliter l'ajout futur de cartes à pouvoirs spéciaux.
 
 **Contraintes Techniques Absolues :**
-1. Résolution Automatique : Le défenseur ne choisit pas. Le serveur lance automatiquement le maximum de dés possibles pour le défenseur (min(3, garnison)).
-2. Aléatoire : Utilise `random` de Python pour simuler les dés (1 à 6).
-3. Adjacence : Une attaque n'est possible que si les territoires sont voisins.
+1. Architecture par Budget : On n'utilise pas de booléen bloquant, mais un compteur `strategic_moves_left`.
+2. Règles de base : Le joueur reçoit 1 mouvement par tour. Les territoires source et cible doivent lui appartenir et être adjacents. Il faut laisser au moins 1 troupe sur le territoire source.
+3. Ergonomie intelligente : Si le solde de mouvements tombe à 0 après l'action, le moteur passe automatiquement à la Phase 5.
 
-**Instructions de Livraison (Étape 10 - Phase 3 Attaques) :**
-Fournis uniquement le code mis à jour pour ces 3 fichiers :
+**Instructions de Livraison (Étape 11 - Phase 4 Mouvement Dynamique) :**
+Fournis uniquement le code mis à jour pour ces 2 fichiers :
 
-**1. Le fichier `backend/api/game/map_constants.py` devant inclure :**
-* L'ajout d'un dictionnaire `ADJACENCY: Dict[int, List[int]]` qui liste les voisins de chaque territoire de 1 à 43. (Invente des liaisons logiques pour l'instant, assure-toi juste que chaque territoire a au moins 2 ou 3 voisins de manière bidirectionnelle).
+**1. Le fichier `backend/api/game/state_schemas.py` devant inclure :**
+* L'ajout de `strategic_moves_left: int = 0` dans la classe `PlayerState` (en remplacement de toute idée de booléen `has_moved`).
 
-**2. Le fichier `backend/api/game/state_schemas.py` devant inclure :**
-* Dans `PlayerState`, ajoute : `has_conquered_this_turn: bool = False`. (C'est indispensable pour savoir si le joueur aura droit de piocher une carte à la Phase 5).
-
-**3. Le fichier `backend/api/game/engine.py` devant inclure :**
-* L'import de `ADJACENCY` et de la librairie `random`.
-* Dans `_end_turn`, ajoute une ligne pour réinitialiser `state.players[next_player_id].has_conquered_this_turn = False` pour le joueur qui va commencer son tour.
-* L'ajout de `"attack_territory": GameEngine._handle_attack` dans `action_handlers`.
-* La création de `_handle_attack(state: GameState, payload: dict) -> dict` qui doit :
-  - Extraire `attacker_territory_id`, `defender_territory_id`, `attacker_dice` (1, 2, ou 3).
-  - Vérifier : Phase == 3.
-  - Vérifier : Les territoires sont adjacents via `ADJACENCY`.
-  - Vérifier : Propriétaire attaquant == `current_player_id` ET Propriétaire défenseur != `current_player_id`.
-  - Vérifier : L'attaquant a assez de troupes (garnison > `attacker_dice`, car 1 doit rester).
-  - Calculer `defender_dice` = min(3, garnison défenseur).
-  - Lancer les dés (random 1-6), trier les résultats par ordre décroissant pour les deux camps.
-  - Comparer les dés 1 à 1 (Le plus fort vs le plus fort, etc.). En cas d'égalité, le défenseur gagne.
-  - Soustraire les pertes des garnisons respectives.
-  - Si la garnison du défenseur tombe à 0 : Le territoire change de propriétaire, la garnison de l'attaquant est réduite de `attacker_dice`, et le territoire conquis reçoit `attacker_dice` en garnison. Mettre `has_conquered_this_turn = True`. Vérifier si le défenseur n'a plus aucun territoire, si oui, passer son `status` à "eliminated".
-  - Retourner un dictionnaire décrivant l'événement (résultats des dés, pertes, et s'il y a eu conquête).
+**2. Le fichier `backend/api/game/engine.py` devant inclure :**
+* Dans `_end_turn`, ajoute la réinitialisation du budget pour le prochain joueur : `state.players[next_player_id].strategic_moves_left = 1`.
+* L'ajout de `"move_units": GameEngine._handle_move_units` dans `action_handlers`.
+* La création de la méthode asynchrone `_handle_move_units(state: GameState, payload: dict) -> dict` qui doit :
+  - Extraire `source_territory_id`, `target_territory_id`, et `amount`.
+  - Vérifier : `state.phase == 4`.
+  - Vérifier : `state.players[state.current_player_id].strategic_moves_left > 0` (Sinon lever ValueError "Plus de mouvements disponibles").
+  - Vérifier : `amount > 0`.
+  - Vérifier : `target_territory_id` est dans `ADJACENCY.get(source_territory_id, [])`.
+  - Vérifier : Le joueur possède bien les DEUX territoires.
+  - Vérifier : `state.territories[source_territory_id].garrison > amount` (minimum 1 troupe restante à la source).
+  - Si valide : Soustraire `amount` de la source, l'ajouter à la cible.
+  - Décrémenter le budget : `state.players[state.current_player_id].strategic_moves_left -= 1`.
+  - SI (et seulement si) `strategic_moves_left == 0`, alors appeler `await GameEngine._advance_phase(state)` pour passer à la Phase 5.
+  - Retourner l'événement `"units_moved"`.

@@ -10,6 +10,7 @@ class PlayerState(BaseModel):
     cards_in_hand: List[str] = []
     cards_played_this_turn: int = 0
     has_conquered_this_turn: bool = False
+    strategic_moves_left: int = 0
 
 class TerritoryState(BaseModel):
     """État d'un territoire dans la partie."""
