@@ -1,23 +1,30 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est de développer la couche "Données" (Data Layer) du backend d'un jeu de stratégie multijoueur (décrit dans le document GDD.md fourni en contexte).
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python et WebSockets. Ta mission est de développer le "Cœur Réseau" (Network Core) et l'initialisation de la base de données du jeu (décrit dans le document GDD.md fourni en contexte).
 
 **Contraintes Techniques Absolues :**
-1. Frameworks exigés : **SQLAlchemy** (pour les modèles de base de données PostgreSQL) et **Pydantic** (pour la validation des données FastAPI).
-2. Architecture : Tu dois séparer strictement les modèles ORM (`models.py`) des schémas de validation (`schemas.py`).
-3. Règle d'invention : N'invente AUCUN nom de territoire pour le moment. Concentre-toi uniquement sur la structure relationnelle.
+1. Framework : **FastAPI**.
+2. Réseau : Utilisation native des **WebSockets** de FastAPI pour le temps réel.
+3. Sécurité : Configuration stricte des **CORS** en lisant la variable d'environnement `DOMAIN_NAME` pour autoriser le frontend à communiquer avec l'API.
+4. Base de données : Utilisation de **SQLAlchemy** pour configurer la connexion à PostgreSQL via les variables d'environnement.
 
-**Instructions de Livraison (Étape 2 - Modèles et Schémas) :**
-Génère le code complet et commenté pour les fichiers suivants, à placer dans le dossier `backend/api/core/` (ou équivalent selon l'arborescence standard FastAPI) :
+**Instructions de Livraison (Étape 3 - Cœur Réseau et Base de Données) :**
+Génère le code complet, modulaire et commenté pour les 3 fichiers suivants :
 
-**1. Le fichier `models.py` (SQLAlchemy) devant inclure :**
-* `User` : L'entité joueur (id, username, email, hashed_password, stats_victoires, stats_parties_jouees).
-* `Continent` : L'entité statique (id, nom, bonus_renfort).
-* `Territory` : L'entité statique (id, nom, continent_id en clé étrangère).
-* `GameRoom` : L'instance de la partie (id, status [waiting, in_progress, finished], created_at).
-* `GameRoomPlayer` : Table de liaison pour savoir quels utilisateurs sont dans quelle GameRoom, et quelle faction (string vide par défaut) ils ont choisie.
+**1. Le fichier `backend/api/core/database.py` devant inclure :**
+* La récupération des variables d'environnement (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`).
+* La construction sécurisée de l'URL de connexion PostgreSQL.
+* La création de l'`engine` et de la `SessionLocal`.
+* La fonction dépendance `get_db()` pour injecter la session de base de données dans les futures routes.
 
-**2. Le fichier `schemas.py` (Pydantic) devant inclure :**
-* Les schémas de base (BaseModel) pour toutes les entités ci-dessus.
-* Les schémas de création (Create) pour recevoir les données POST (ex: `UserCreate`, `GameRoomCreate`).
-* Les schémas de réponse (Response) avec `orm_mode = True` (ou `model_config = ConfigDict(from_attributes=True)` si Pydantic V2) pour renvoyer les données propres à l'API.
+**2. Le fichier `backend/api/sockets/connection_manager.py` devant inclure :**
+* Une classe `ConnectionManager` optimisée pour le multijoueur.
+* Une structure de données en mémoire pour stocker les connexions actives (par exemple, un dictionnaire regroupant les `WebSocket` par `game_room_id`).
+* Les méthodes asynchrones essentielles : `connect(websocket, room_id)`, `disconnect(websocket, room_id)`, `broadcast_to_room(message, room_id)`, et `send_personal_message(message, websocket)`.
 
-**Ne génère aucune route (endpoints) ni logique de jeu pour le moment.** Fournis uniquement ces deux fichiers structurés et prêts pour la production.
+**3. Le fichier `backend/main.py` devant inclure :**
+* L'initialisation de l'application FastAPI.
+* La configuration du `CORSMiddleware` (autorisant les requêtes venant de `http(s)://{DOMAIN_NAME}` et `http(s)://www.{DOMAIN_NAME}`).
+* L'instanciation globale du `ConnectionManager`.
+* La création automatique des tables dans la base de données au démarrage (via l'import de tes `models` et `Base.metadata.create_all(bind=engine)`).
+* Un endpoint WebSocket d'amorçage : `@app.websocket("/ws/game/{game_room_id}/{client_id}")` qui utilise le manager pour accepter la connexion, gérer la boucle d'écoute `while True`, et gérer les déconnexions (WebSocketDisconnect).
+
+**Ne génère aucune mécanique de jeu spécifique ni de routes REST pour l'instant.** L'objectif est d'obtenir une infrastructure réseau saine, capable d'isoler les connexions simultanées par "salle de jeu" et une connexion certifiée à la base de données.

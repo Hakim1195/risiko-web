@@ -2,14 +2,12 @@
 SQLAlchemy models for the Wasteland Warfare game data layer.
 This file contains all the database models using SQLAlchemy ORM.
 """
-
+#from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from typing import List
-
-Base = declarative_base()
+# On importe la Base centralisée au lieu de la recréer
+from core.database import Base
 
 class User(Base):
     """
