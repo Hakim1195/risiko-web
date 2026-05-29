@@ -1,26 +1,23 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est de développer le "Déclencheur de Partie" (Match Initialization) qui fait le pont entre PostgreSQL (Lobby) et Redis (Game State).
+**Rôle :** Tu es un Architecte Logiciel Expert en Python. Ta mission est de développer le "Cœur Logique" (Game Engine) du jeu, qui manipulera l'état stocké dans Redis selon les règles du GDD fourni en contexte.
 
 **Contraintes Techniques Absolues :**
-1. Framework : FastAPI.
-2. Éviter les imports circulaires : L'instance du `ConnectionManager` doit être créée dans son propre fichier, et non dans `main.py`.
-3. Logique de jeu : Le nombre d'unités initiales par joueur dépend du nombre de participants (3 joueurs = 35 unités, 4 = 30, 5 = 25, 6 = 20).
-4. Synchronisation : Tu dois utiliser `GameStateManager.initialize_game` (Pydantic V2) pour créer l'état dans Redis, puis diffuser un message WebSocket pour prévenir les clients.
+1. Indépendance : Le Game Engine ne doit faire aucun appel WebSocket ni API REST. Il ne fait que de la logique pure et communique uniquement avec le `GameStateManager`.
+2. Asynchronisme : Les méthodes doivent être asynchrones pour interagir avec Redis.
+3. Sécurité de l'état : Chaque action doit commencer par vérifier si c'est bien le tour du joueur (`current_player_id`) et s'il est toujours en vie (`status == "alive"`).
 
-**Instructions de Livraison (Étape 6 - Match Initialization) :**
+**Instructions de Livraison (Étape 7 - Game Engine Base) :**
+Génère le code modulaire, propre et commenté pour le nouveau fichier suivant :
 
-**1. Modification de `backend/api/sockets/connection_manager.py` :**
-* À la toute fin du fichier, crée une instance globale : `manager = ConnectionManager()`.
-* *(Note : Tu devras ensuite corriger `main.py` pour importer cette instance précise au lieu de la recréer).*
+**1. Le fichier `backend/api/game/engine.py` devant inclure :**
+* Une classe statique ou un singleton `GameEngine`.
+* Une méthode principale `process_action(room_id: int, player_id: int, action_type: str, payload: dict) -> dict`. Cette méthode doit :
+  - Récupérer l'état via `GameStateManager.get_game_state(room_id)`.
+  - Vérifier que c'est bien le tour du `player_id` (sinon lever une ValueError "Ce n'est pas votre tour").
+  - Rediriger vers des sous-méthodes spécifiques selon l'`action_type` (ex: utiliser un `match/case` ou un dictionnaire de routage).
+  - Sauvegarder le nouvel état via `GameStateManager.save_game_state`.
+  - Retourner un dictionnaire décrivant l'événement qui vient de se produire (pour que les WebSockets puissent le diffuser plus tard).
+* Une méthode `_end_turn(state: GameState)` qui calcule à qui est le prochain tour (en sautant les joueurs éliminés) et incrémente le `current_turn`.
+* Une méthode `_advance_phase(state: GameState)` qui passe à la phase suivante (0 à 5) et appelle `_end_turn` si on dépasse la phase 5.
+* Une action de test simple : implémente l'action `action_type = "pass_turn"` qui appelle simplement `_advance_phase`.
 
-**2. Le fichier `backend/api/v1/endpoints/game.py` (NOUVEAU) devant inclure :**
-* Un endpoint `POST /rooms/{room_id}/start`.
-* Vérifier que la salle existe dans PostgreSQL, qu'elle est en status `"waiting"`, et qu'elle contient au moins 3 joueurs (et max 6).
-* Mettre à jour le status de la `GameRoom` à `"in_progress"` dans la base de données PostgreSQL.
-* Calculer le nombre d'unités initiales selon les règles ci-dessus.
-* Formater les données des joueurs et appeler `await GameStateManager.initialize_game(room_id, players_data)`.
-* Importer le `manager` depuis `connection_manager` et appeler `await manager.broadcast_to_room(json.dumps({"type": "game_started", "room_id": room_id}), str(room_id))`.
-
-**3. Modification de `backend/api/v1/api.py` :**
-* Importer le nouveau routeur `game` et l'inclure dans l'`api_router` (ex: `prefix="/game"`).
-
-**Objectif :** Fournir uniquement le code de ces fichiers mis à jour ou créés. Assure-toi que la transition entre la base de données relationnelle et la mémoire vive soit parfaitement fluide et asynchrone.
+**Ne code pas encore les logiques complexes d'attaque ou de déplacement.** L'objectif est d'obtenir l'orchestrateur de base (le "cerveau") capable de faire tourner les tours et les phases de manière sécurisée.
