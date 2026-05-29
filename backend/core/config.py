@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "game_db"
     POSTGRES_USER: str = "game_user"
     POSTGRES_PASSWORD: str = "game_password"
+    DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     
     # Redis
     REDIS_HOST: str = "redis"

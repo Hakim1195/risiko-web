@@ -1,22 +1,23 @@
-Rôle : Tu es un Architecte Logiciel Full-Stack et un Expert DevOps. Ta mission est d'amorcer l'infrastructure d'un jeu de stratégie multijoueur (décrit dans le document GDD.md fourni en contexte).
+**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est de développer la couche "Données" (Data Layer) du backend d'un jeu de stratégie multijoueur (décrit dans le document GDD.md fourni en contexte).
 
-Contraintes Techniques Absolues :
+**Contraintes Techniques Absolues :**
+1. Frameworks exigés : **SQLAlchemy** (pour les modèles de base de données PostgreSQL) et **Pydantic** (pour la validation des données FastAPI).
+2. Architecture : Tu dois séparer strictement les modèles ORM (`models.py`) des schémas de validation (`schemas.py`).
+3. Règle d'invention : N'invente AUCUN nom de territoire pour le moment. Concentre-toi uniquement sur la structure relationnelle.
 
-Le backend est strictement en Python (FastAPI).
+**Instructions de Livraison (Étape 2 - Modèles et Schémas) :**
+Génère le code complet et commenté pour les fichiers suivants, à placer dans le dossier `backend/api/core/` (ou équivalent selon l'arborescence standard FastAPI) :
 
-La base de données est hybride : PostgreSQL (données persistantes) + Redis (état du jeu en temps réel).
+**1. Le fichier `models.py` (SQLAlchemy) devant inclure :**
+* `User` : L'entité joueur (id, username, email, hashed_password, stats_victoires, stats_parties_jouees).
+* `Continent` : L'entité statique (id, nom, bonus_renfort).
+* `Territory` : L'entité statique (id, nom, continent_id en clé étrangère).
+* `GameRoom` : L'instance de la partie (id, status [waiting, in_progress, finished], created_at).
+* `GameRoomPlayer` : Table de liaison pour savoir quels utilisateurs sont dans quelle GameRoom, et quelle faction (string vide par défaut) ils ont choisie.
 
-L'architecture backend suit le pattern Event-Driven / Composition (State, Systems, Event Bus).
+**2. Le fichier `schemas.py` (Pydantic) devant inclure :**
+* Les schémas de base (BaseModel) pour toutes les entités ci-dessus.
+* Les schémas de création (Create) pour recevoir les données POST (ex: `UserCreate`, `GameRoomCreate`).
+* Les schémas de réponse (Response) avec `orm_mode = True` (ou `model_config = ConfigDict(from_attributes=True)` si Pydantic V2) pour renvoyer les données propres à l'API.
 
-Alerte Réseau : Le serveur VPS de production possède déjà une instance Traefik active sur le réseau externe nommé traefik_web (ou proxy). Tu ne dois SURTOUT PAS créer de service Traefik dans le docker-compose. Tu dois uniquement configurer les labels Traefik sur les conteneurs (Frontend et Backend) pour qu'ils soient routés par l'instance existante, et les connecter à ce réseau externe.
-
-Instructions de Livraison (Étape 1 - Infrastructure) :
-Ne génère aucun code de logique de jeu pour le moment. Fournis-moi uniquement les fichiers d'infrastructure de base pour monter l'environnement :
-
-Le fichier docker-compose.yml complet (comprenant les services frontend, backend, postgres, redis), configuré avec les labels Traefik et les variables d'environnement (.env).
-
-Le Dockerfile du frontend (Nginx Alpine).
-
-Le Dockerfile du backend (Python/FastAPI optimisé).
-
-Le fichier requirements.txt initial pour le backend. 
+**Ne génère aucune route (endpoints) ni logique de jeu pour le moment.** Fournis uniquement ces deux fichiers structurés et prêts pour la production.

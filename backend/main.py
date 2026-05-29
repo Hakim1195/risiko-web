@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
 from .api import api_router
+from .core.database import Base, engine
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -19,6 +20,11 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Create database tables
+@app.on_event("startup")
+async def create_tables():
+    Base.metadata.create_all(bind=engine)
 
 @app.get("/health")
 async def health_check():
