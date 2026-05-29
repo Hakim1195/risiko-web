@@ -32,3 +32,4 @@ jobs:
 
       - name: Vérification du déploiement        
         run: docker-compose ps
+        
