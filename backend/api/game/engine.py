@@ -30,6 +30,7 @@ class GameEngine:
             "deploy_units": GameEngine._handle_deploy_units,
             "attack_territory": GameEngine._handle_attack,
             "move_units": GameEngine._handle_move_units,
+            "play_card": GameEngine._handle_play_card,
         }
         
         # Call the appropriate handler
@@ -439,4 +440,104 @@ class GameEngine:
             "source_territory_id": source_territory_id,
             "target_territory_id": target_territory_id,
             "amount": amount
+        }
+
+    @staticmethod
+    async def _handle_play_card(state: GameState, payload: dict) -> dict:
+        """
+        Handle the play card action (Phase 2 and 3).
+        """
+        # Validate game phase (can only play cards during active phases)
+        if state.phase not in [1, 2, 3, 4]:
+            raise ValueError("Les cartes ne peuvent être jouées que pendant les phases actives (1, 2, 3, ou 4)")
+        
+        # Validate that player hasn't played too many cards this turn
+        current_player = state.players[state.current_player_id]
+        if current_player.cards_played_this_turn >= 2:
+            raise ValueError("Vous avez déjà joué 2 cartes ce tour")
+        
+        # Extract card ID from payload
+        card_id = payload.get("card_id")
+        if not card_id:
+            raise ValueError("L'ID de la carte est requis")
+        
+        # Validate that player owns the card
+        if card_id not in current_player.cards_in_hand:
+            raise ValueError(f"Vous ne possédez pas la carte {card_id}")
+        
+        # Route to appropriate card handler
+        card_handlers = {
+            "card_renfort_3": GameEngine._play_card_renfort_3,
+            "card_shield_1": GameEngine._play_card_shield_1,
+            "card_airborne_1": GameEngine._play_card_airborne_1,
+        }
+        
+        if card_id not in card_handlers:
+            raise ValueError(f"Type de carte non supporté: {card_id}")
+        
+        # Call the appropriate handler
+        handler = card_handlers[card_id]
+        event = await handler(state, current_player, payload)
+        
+        # Remove card from player's hand
+        current_player.cards_in_hand.remove(card_id)
+        
+        # Increment cards played this turn
+        current_player.cards_played_this_turn += 1
+        
+        return event
+
+    @staticmethod
+    async def _play_card_renfort_3(state: GameState, player: Any, payload: dict) -> dict:
+        """
+        Play a Renforts Immédiats card (adds 3 units to player's stock immediately).
+        """
+        # Add 3 units to player's stock
+        player.units_in_stock += 3
+        
+        return {
+            "event_type": "card_played",
+            "card_id": "card_renfort_3",
+            "player_id": player.player_id,
+            "units_added": 3
+        }
+
+    @staticmethod
+    async def _play_card_shield_1(state: GameState, player: Any, payload: dict) -> dict:
+        """
+        Play a Bouclier Énergétique card (protects a territory from attacks for 1 turn).
+        Requires target_territory_id in payload.
+        """
+        # Extract target territory ID from payload
+        target_territory_id = payload.get("target_territory_id")
+        if not target_territory_id:
+            raise ValueError("L'ID du territoire cible est requis pour la carte Bouclier Énergétique")
+        
+        # Validate that the territory belongs to the player
+        if state.territories[target_territory_id].owner_id != player.player_id:
+            raise ValueError("Vous ne contrôlez pas le territoire cible")
+        
+        # Apply shield to the territory
+        state.territories[target_territory_id].shield_turns_left = 1
+        
+        return {
+            "event_type": "card_played",
+            "card_id": "card_shield_1",
+            "player_id": player.player_id,
+            "target_territory_id": target_territory_id
+        }
+
+    @staticmethod
+    async def _play_card_airborne_1(state: GameState, player: Any, payload: dict) -> dict:
+        """
+        Play a Frappe Nucléaire Tactique card (allows one non-adjacent attack in Phase 3).
+        """
+        # Add 1 to airborne attacks left for the player
+        player.airborne_attacks_left += 1
+        
+        return {
+            "event_type": "card_played",
+            "card_id": "card_airborne_1",
+            "player_id": player.player_id,
+            "airborne_attacks_added": 1
         }

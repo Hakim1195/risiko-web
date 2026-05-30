@@ -28,7 +28,13 @@ async def run_simulation():
         phase=2, # Déploiement
         contamination_zone={"position": 1, "probability": 1.0}, # La zone est sur T1
         players={
-            p1_id: PlayerState(player_id=p1_id, faction="Mutanti", units_in_stock=5, status="alive"),
+            p1_id: PlayerState(
+                player_id=p1_id, 
+                faction="Mutanti", 
+                units_in_stock=5, 
+                status="alive",
+                cards_in_hand=["card_renfort_3", "card_shield_1"],
+                cards_played_this_turn=0),
             p2_id: PlayerState(player_id=p2_id, faction="Sintetici", units_in_stock=0, status="alive")
         },
         territories=fake_territories
@@ -44,6 +50,14 @@ async def run_simulation():
     state = await GameStateManager.get_game_state(room_id)
     print(f"Garnison de T1 : {state.territories[1].garrison} troupes (Attendu: 5)")
     print(f"Stock de P1 : {state.players[p1_id].units_in_stock} troupes (Attendu: 3)")
+
+    # 2.5 Test Carte (Phase 2)
+    print(f"\n--- 🃏 P1 joue sa carte RENFORT IMMÉDIAT ---")
+    event_card = await GameEngine.process_action(room_id, p1_id, "play_card", {"card_id": "card_renfort_3"})
+    state = await GameStateManager.get_game_state(room_id)
+    print(f"Événement renvoyé : {event_card}")
+    print(f"Nouveau stock de P1 : {state.players[p1_id].units_in_stock} troupes (Attendu: 6)")
+    print(f"Cartes restantes en main : {state.players[p1_id].cards_in_hand}")
 
     # 3. Test Attaque (Phase 3)
     state.phase = 3
