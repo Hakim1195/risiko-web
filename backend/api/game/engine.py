@@ -1,9 +1,9 @@
 import asyncio
 import random
 from typing import Dict, Any
-from backend.api.game.state_manager import GameStateManager
-from backend.api.game.state_schemas import GameState
-from backend.api.game.map_constants import CONTINENTS, ADJACENCY
+from api.game.state_manager import GameStateManager
+from api.game.state_schemas import GameState
+from api.game.map_constants import CONTINENTS, ADJACENCY
 
 
 class GameEngine:
