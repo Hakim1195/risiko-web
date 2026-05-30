@@ -11,12 +11,14 @@ async def run_simulation():
 
     # 1. Création d'un état de jeu factice
     # On crée d'abord nos deux territoires de test
+    # 1. Création d'un état de jeu factice
     fake_territories = {
         1: TerritoryState(territory_id=1, owner_id=p1_id, garrison=3), # P1 possède T1
         2: TerritoryState(territory_id=2, owner_id=p2_id, garrison=1), # P2 possède T2
+        3: TerritoryState(territory_id=3, owner_id=p2_id, garrison=1), # <-- BOUCLIER DE SURVIE POUR P2
     }
-    # On remplit le reste (de 3 à 43) pour que le moteur ne plante pas si la zone s'y téléporte !
-    for i in range(3, 44):
+    # On remplit le reste (de 4 à 43)
+    for i in range(4, 44):
         fake_territories[i] = TerritoryState(territory_id=i, owner_id=None, garrison=0)
 
     state = GameState(
