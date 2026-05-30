@@ -42,7 +42,7 @@ class GameEngine:
         # Save updated game state
         await GameStateManager.save_game_state(room_id, state)
         
-    return event
+        return event
     
     @staticmethod
     async def _handle_pass_turn(state: GameState, payload: dict) -> dict:
@@ -51,13 +51,13 @@ class GameEngine:
         """
         await GameEngine._advance_phase(state)
         
-    return {
-        "event_type": "turn_passed",
-        "room_id": state.room_id,
-        "from_player_id": state.current_player_id,
-        "phase": state.phase,
-        "turn": state.current_turn
-    }
+        return {
+            "event_type": "turn_passed",
+            "room_id": state.room_id,
+            "from_player_id": state.current_player_id,
+            "phase": state.phase,
+            "turn": state.current_turn
+        }
     
     @staticmethod
     async def _end_turn(state: GameState):
@@ -125,7 +125,7 @@ class GameEngine:
                 state.phase = 1
                 await GameEngine._calculate_reinforcements(state)
                 
-    return
+                return
                 
         # Si on arrive ici, un seul joueur est en vie (fin de partie)
     
@@ -167,7 +167,7 @@ class GameEngine:
         # Add to player's stock
         current_player.units_in_stock += total_reinforcements
         
-    return total_reinforcements
+        return total_reinforcements
     
     @staticmethod
     async def _draw_card_for_current_player(state: GameState):
@@ -222,18 +222,6 @@ class GameEngine:
     async def _handle_deploy_units(state: GameState, payload: dict) -> dict:
         """
         Handle the deploy units action (Phase 2).
-        
-        Validates:
-        - Game is in Phase 2
-        - Amount > 0
-        - Territory belongs to current player
-        - Player has enough units in stock
-        
-        Updates:
-        - Subtracts amount from player's units_in_stock
-        - Adds amount to territory's garrison
-        
-        Returns: Event with units_deployed type
         """
         # Extract parameters from payload
         territory_id = payload.get("territory_id")
@@ -263,27 +251,17 @@ class GameEngine:
         current_player.units_in_stock -= amount
         state.territories[territory_id].garrison += amount
         
-    # Return event
-    return {
-        "event_type": "units_deployed",
-        "territory_id": territory_id,
-        "amount": amount
-    }
+        # Return event
+        return {
+            "event_type": "units_deployed",
+            "territory_id": territory_id,
+            "amount": amount
+        }
     
     @staticmethod
     async def _handle_attack(state: GameState, payload: dict) -> dict:
         """
         Handle the attack territory action (Phase 3).
-        
-        Validates:
-        - Game is in Phase 3
-        - Territories are adjacent
-        - Attacker owns the attacking territory
-        - Defender doesn't own the defending territory
-        - Attacker has enough units (at least 2, 1 must remain)
-        - Valid number of dice (1-3)
-        
-        Executes combat and updates game state accordingly.
         """
         # Extract parameters from payload
         attacker_territory_id = payload.get("attacker_territory_id")
@@ -386,95 +364,79 @@ class GameEngine:
                 state.players[original_defender_id].status = "eliminated"
         
         # Return event with combat results
-    return {
-        "event_type": "attack_result",
-        "attacker_territory_id": attacker_territory_id,
-        "defender_territory_id": defender_territory_id,
-        "attacker_dice": attacker_dice,
-        "defender_dice": defender_dice,
-        "attacker_rolls": attacker_rolls,
-        "defender_rolls": defender_rolls,
-        "attacker_losses": attacker_losses,
-        "defender_losses": defender_losses,
-        "conquered": conquered,
-        "new_attacker_garrison": state.territories[attacker_territory_id].garrison,
-        "new_defender_garrison": state.territories[defender_territory_id].garrison
-       }
+        return {
+            "event_type": "attack_result",
+            "attacker_territory_id": attacker_territory_id,
+            "defender_territory_id": defender_territory_id,
+            "attacker_dice": attacker_dice,
+            "defender_dice": defender_dice,
+            "attacker_rolls": attacker_rolls,
+            "defender_rolls": defender_rolls,
+            "attacker_losses": attacker_losses,
+            "defender_losses": defender_losses,
+            "conquered": conquered,
+            "new_attacker_garrison": state.territories[attacker_territory_id].garrison,
+            "new_defender_garrison": state.territories[defender_territory_id].garrison
+        }
    
-   @staticmethod
-   async def _handle_move_units(state: GameState, payload: dict) -> dict:
-       """
-       Handle the move units action (Phase 4 - Strategic Movement).
-       
-       Validates:
-       - Game is in Phase 4
-       - Player has moves left
-       - Amount > 0
-       - Target territory is adjacent to source territory
-       - Player owns both territories
-       - Source territory has enough units (at least 1 must remain)
-       
-       Updates:
-       - Subtracts amount from source territory
-       - Adds amount to target territory
-       - Decrements strategic moves budget
-       - If budget reaches 0, advances to next phase
-       
-       Returns: Event with units_moved type
-       """
-       # Extract parameters from payload
-       source_territory_id = payload.get("source_territory_id")
-       target_territory_id = payload.get("target_territory_id")
-       amount = payload.get("amount")
-       
-       # Validate game phase
-       if state.phase != 4:
-           raise ValueError("Les mouvements ne peuvent se faire que pendant la Phase 4")
-       
-       # Validate player has moves left
-       current_player = state.players[state.current_player_id]
-       if current_player.strategic_moves_left <= 0:
-           raise ValueError("Plus de mouvements disponibles")
-       
-       # Validate amount
-       if amount is None or amount <= 0:
-           raise ValueError("La quantité d'unités à déplacer doit être supérieure à 0")
-       
-       # Validate target territory is adjacent to source territory
-       if target_territory_id not in ADJACENCY.get(source_territory_id, []):
-           raise ValueError(f"Les territoires {source_territory_id} et {target_territory_id} ne sont pas adjacents")
-       
-       # Validate that the source territory is not frozen
-       if state.territories[source_territory_id].frozen_turns_left > 0:
-           raise ValueError("Ce territoire est gelé et ne peut pas agir")
-       
-       # Validate player owns both territories
-       if state.territories[source_territory_id].owner_id != state.current_player_id:
-           raise ValueError(f"Vous ne contrôlez pas le territoire source {source_territory_id}")
-       
-       if state.territories[target_territory_id].owner_id != state.current_player_id:
-           raise ValueError(f"Vous ne contrôlez pas le territoire cible {target_territory_id}")
-       
-       # Validate source territory has enough units (at least 1 must remain)
-       source_garrison = state.territories[source_territory_id].garrison
-       if source_garrison <= amount:
-           raise ValueError(f"Le territoire source {source_territory_id} n'a pas assez d'unités pour le déplacement")
-       
-       # Apply movement
-       state.territories[source_territory_id].garrison -= amount
-       state.territories[target_territory_id].garrison += amount
-       
-       # Decrement strategic moves budget
-       current_player.strategic_moves_left -= 1
-       
-       # If no moves left, advance to next phase
-       if current_player.strategic_moves_left == 0:
-           await GameEngine._advance_phase(state)
-       
-       # Return event
-    return {
-        "event_type": "units_moved",
-        "source_territory_id": source_territory_id,
-        "target_territory_id": target_territory_id,
-        "amount": amount
-    }
+    @staticmethod
+    async def _handle_move_units(state: GameState, payload: dict) -> dict:
+        """
+        Handle the move units action (Phase 4 - Strategic Movement).
+        """
+        # Extract parameters from payload
+        source_territory_id = payload.get("source_territory_id")
+        target_territory_id = payload.get("target_territory_id")
+        amount = payload.get("amount")
+        
+        # Validate game phase
+        if state.phase != 4:
+            raise ValueError("Les mouvements ne peuvent se faire que pendant la Phase 4")
+        
+        # Validate player has moves left
+        current_player = state.players[state.current_player_id]
+        if current_player.strategic_moves_left <= 0:
+            raise ValueError("Plus de mouvements disponibles")
+        
+        # Validate amount
+        if amount is None or amount <= 0:
+            raise ValueError("La quantité d'unités à déplacer doit être supérieure à 0")
+        
+        # Validate target territory is adjacent to source territory
+        if target_territory_id not in ADJACENCY.get(source_territory_id, []):
+            raise ValueError(f"Les territoires {source_territory_id} et {target_territory_id} ne sont pas adjacents")
+        
+        # Validate that the source territory is not frozen
+        if state.territories[source_territory_id].frozen_turns_left > 0:
+            raise ValueError("Ce territoire est gelé et ne peut pas agir")
+        
+        # Validate player owns both territories
+        if state.territories[source_territory_id].owner_id != state.current_player_id:
+            raise ValueError(f"Vous ne contrôlez pas le territoire source {source_territory_id}")
+        
+        if state.territories[target_territory_id].owner_id != state.current_player_id:
+            raise ValueError(f"Vous ne contrôlez pas le territoire cible {target_territory_id}")
+        
+        # Validate source territory has enough units (at least 1 must remain)
+        source_garrison = state.territories[source_territory_id].garrison
+        if source_garrison <= amount:
+            raise ValueError(f"Le territoire source {source_territory_id} n'a pas assez d'unités pour le déplacement")
+        
+        # Apply movement
+        state.territories[source_territory_id].garrison -= amount
+        state.territories[target_territory_id].garrison += amount
+        
+        # Decrement strategic moves budget
+        current_player.strategic_moves_left -= 1
+        
+        # If no moves left, advance to next phase
+        if current_player.strategic_moves_left == 0:
+            await GameEngine._advance_phase(state)
+        
+        # Return event
+        return {
+            "event_type": "units_moved",
+            "source_territory_id": source_territory_id,
+            "target_territory_id": target_territory_id,
+            "amount": amount
+        }
