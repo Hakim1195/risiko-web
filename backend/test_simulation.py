@@ -10,6 +10,15 @@ async def run_simulation():
     p1_id, p2_id = 1, 2
 
     # 1. Création d'un état de jeu factice
+    # On crée d'abord nos deux territoires de test
+    fake_territories = {
+        1: TerritoryState(territory_id=1, owner_id=p1_id, garrison=3), # P1 possède T1
+        2: TerritoryState(territory_id=2, owner_id=p2_id, garrison=1), # P2 possède T2
+    }
+    # On remplit le reste (de 3 à 43) pour que le moteur ne plante pas si la zone s'y téléporte !
+    for i in range(3, 44):
+        fake_territories[i] = TerritoryState(territory_id=i, owner_id=None, garrison=0)
+
     state = GameState(
         room_id=room_id,
         current_turn=1,
@@ -20,10 +29,7 @@ async def run_simulation():
             p1_id: PlayerState(player_id=p1_id, faction="Mutanti", units_in_stock=5, status="alive"),
             p2_id: PlayerState(player_id=p2_id, faction="Sintetici", units_in_stock=0, status="alive")
         },
-        territories={
-            1: TerritoryState(territory_id=1, owner_id=p1_id, garrison=3), # P1 possède T1
-            2: TerritoryState(territory_id=2, owner_id=p2_id, garrison=1), # P2 possède T2
-        }
+        territories=fake_territories
     )
 
     # Sauvegarde dans Redis
