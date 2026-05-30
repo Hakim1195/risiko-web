@@ -14,9 +14,9 @@ jobs:
       - name: Récupération du code source        
         uses: actions/checkout@v4      
 
-      - name: Injection de la configuration de Production
+      #- name: Injection de la configuration de Production
         # On copie le vrai .env depuis le coffre-fort du VPS vers le dossier de travail actuel
-        run: cp /home/hakim/risiko-secrets/.env ./.env
+      #  run: cp /home/hakim/risiko-secrets/.env ./.env
 
       - name: Nettoyage léger
         run: docker system prune -f
