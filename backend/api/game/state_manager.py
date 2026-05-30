@@ -1,8 +1,8 @@
 import asyncio
 from typing import List, Dict, Optional
 from pydantic import ValidationError
-from .state_schemas import GameState, PlayerState, TerritoryState
-from core.redis import redis_pool
+from api.game.state_schemas import GameState, PlayerState, TerritoryState
+from api.core.redis import redis_pool
 import logging
 
 logging.basicConfig(level=logging.INFO)
