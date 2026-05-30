@@ -73,17 +73,15 @@ class GameEngine:
                 territory.frozen_turns_left -= 1
         
         # Reset temporary modifiers for the player who just finished their turn
-        current_player = state.players[state.current_player_id]
-        current_player.bonus_attack_dice = 0
-        current_player.bonus_defense_dice = 0
-        current_player.guaranteed_sixes_attack = 0
-        current_player.airborne_attacks_left = 0
-        current_player.vampiric_attack_active = False
-        current_player.vampiric_defense_active = False
-        current_player.immune_to_contamination = False
-        
-        # Reset cards played this turn for the player who just finished
-        current_player.cards_played_this_turn = 0
+        outgoing_player = state.players[state.current_player_id]
+        outgoing_player.bonus_attack_dice = 0
+        outgoing_player.bonus_defense_dice = 0
+        outgoing_player.guaranteed_sixes_attack = 0
+        outgoing_player.airborne_attacks_left = 0
+        outgoing_player.vampiric_attack_active = False
+        outgoing_player.vampiric_defense_active = False
+        outgoing_player.immune_to_contamination = False
+        outgoing_player.cards_played_this_turn = 0
         
         # Extraire et trier les ID de joueurs de manière sécurisée
         player_ids = sorted(list(state.players.keys()))
@@ -95,12 +93,38 @@ class GameEngine:
             next_player_id = player_ids[current_index]
             
             if state.players[next_player_id].status == "alive":
+                # Check if this is a new Global Round
+                is_new_global_round = player_ids.index(next_player_id) <= player_ids.index(state.current_player_id)
+                
+                # 1. TRANSFERT DU TOUR (Changement officiel de joueur)
                 state.current_player_id = next_player_id
                 state.current_turn += 1
-                # Reset the conquered flag for the next player
                 state.players[next_player_id].has_conquered_this_turn = False
-                # Reset strategic moves budget for next player
                 state.players[next_player_id].strategic_moves_left = 1
+                
+                # 2. PHASE 0 : CONTAMINATION
+                # A. Déplacement de la zone (Uniquement au nouveau round global)
+                if is_new_global_round:
+                    if not state.contamination_zone:
+                        state.contamination_zone = {"position": random.randint(1, 43), "probability": 0.2}
+                    else:
+                        if random.random() < state.contamination_zone["probability"]:
+                            state.contamination_zone["position"] = random.randint(1, 43)
+                            state.contamination_zone["probability"] = 0.2
+                        else:
+                            state.contamination_zone["probability"] = min(1.0, state.contamination_zone["probability"] + 0.2)
+                
+                # B. Dégâts de la zone (Pour CHAQUE joueur qui commence son tour)
+                if state.contamination_zone:
+                    territory = state.territories[state.contamination_zone["position"]]
+                    incoming_player = state.players[next_player_id]
+                    if territory.owner_id == next_player_id and not incoming_player.immune_to_contamination:
+                        territory.garrison = max(1, territory.garrison - 2)
+                
+                # 3. AUTO-ADVANCE VERS PHASE 1 (Renforts)
+                state.phase = 1
+                await GameEngine._calculate_reinforcements(state)
+                
                 return
                 
         # Si on arrive ici, un seul joueur est en vie (fin de partie)

@@ -21,13 +21,15 @@
 L'ordre des phases est immuable. Un joueur doit terminer ces 6 phases avant que la main ne passe au joueur suivant.
 
 #### Phase 0 : La Contamination
-La Zone de Contamination (événement environnemental) se déplace avec une probabilité croissante à chaque début de tour global : 
-* Tour 1 & 2 : 20%
-* Tour 3 : 40%
-* Tour 4 : 60%
-* Tour 5 : 80%
-* Tour 6+ : 100% 
-*Dès que la zone se déplace d'un territoire, le compteur de probabilité retombe à sa valeur initiale.*
+La Zone de Contamination (événement environnemental aléatoire) perturbe le plateau.
+* **Le Cycle Global :** À chaque "Tour Global" (quand la boucle revient au premier joueur en vie), le Game Engine lance un jet de probabilité pour déplacer la Zone :
+  * Tour 1 & 2 : 20%
+  * Tour 3 : 40%
+  * Tour 4 : 60%
+  * Tour 5 : 80%
+  * Tour 6+ : 100% 
+* **Déplacement :** Si la probabilité se déclenche, la Zone se téléporte **aléatoirement sur n'importe lequel des 43 territoires**. Le compteur de probabilité retombe alors à 20%. Sinon, elle reste sur place et la probabilité augmente au tour global suivant.
+* **Effet (Dégâts) :** Au début de son tour individuel, si le joueur actif possède le territoire contaminé (et s'il n'est pas protégé par la carte "Immunité"), il subit un assaut radioactif : **le territoire perd instantanément 2 unités** (la garnison ne peut pas descendre en dessous de 1 unité).
 
 #### Phase 1 : Attribution des Renforts
 L'économie de guerre est brutale. Le joueur reçoit de nouvelles troupes selon un calcul strict :
