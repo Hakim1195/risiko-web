@@ -1,0 +1,1 @@
+La sécurité du Bouclier : Dans _play_card_shield_1, l'agent vérifie directement state.territories[target_territory_id].owner_id. Si un hacker (ou un bug front) envoie un ID de territoire qui n'existe pas (ex: 99), cela fera crasher le moteur avec une KeyError. Il suffira d'ajouter un petit if target_territory_id not in state.territories: pour le sécuriser plus tard.

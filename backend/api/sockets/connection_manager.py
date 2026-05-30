@@ -2,9 +2,9 @@
 WebSocket connection manager for the Wasteland Warfare game.
 This file handles the management of WebSocket connections for multiplayer functionality.
 """
+import asyncio
 from typing import Dict, List
 from fastapi import WebSocket
-import asyncio
 
 class ConnectionManager:
     """
@@ -46,7 +46,17 @@ class ConnectionManager:
                 if not self.active_connections[room_id]:
                     del self.active_connections[room_id]
     
-    async def broadcast_to_room(self, message: str, room_id: str):
+    async def send_personal_message(self, message: dict, websocket: WebSocket):
+        """
+        Send a message to a specific WebSocket connection.
+        
+        Args:
+            message: The message to send
+            websocket: The WebSocket connection
+        """
+        await websocket.send_json(message)
+    
+    async def broadcast_to_room(self, room_id: str, message: dict):
         """
         Send a message to all connections in a specific room.
         
@@ -58,20 +68,10 @@ class ConnectionManager:
             # Create a list of tasks for sending messages
             tasks = []
             for connection in self.active_connections[room_id]:
-                tasks.append(connection.send_text(message))
+                tasks.append(connection.send_json(message))
             
-            # Send messages concurrently
+            # Send messages concurrently and handle exceptions silently
             await asyncio.gather(*tasks, return_exceptions=True)
-    
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        """
-        Send a message to a specific WebSocket connection.
-        
-        Args:
-            message: The message to send
-            websocket: The WebSocket connection
-        """
-        await websocket.send_text(message)
 
 # Create global instance of ConnectionManager
 manager = ConnectionManager()

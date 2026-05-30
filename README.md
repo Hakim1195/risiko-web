@@ -1,17 +1,24 @@
-**Rôle :** Tu es un Architecte Logiciel Full-Stack Expert en Python. Ta mission est d'implémenter l'action "play_card" dans le Game Engine en utilisant un design pattern robuste et évolutif (Dictionnaire de routage/Dispatch).
+**Rôle :** Tu es un Architecte Backend Expert en FastAPI.
+**Mission :** Créer le routeur WebSocket qui relie les joueurs, le `ConnectionManager`, et le `GameEngine`.
 
-**Règles du Jeu pour les Cartes :**
-1. Un joueur ne peut jouer qu'une seule carte par tour (`cards_played_this_turn < 1`).
-2. Les cartes ne peuvent être jouées que pendant les phases actives (Phases 1, 2, 3, ou 4). Jamais en Phase 0 ou 5.
-3. Le joueur doit posséder la carte dans sa liste `cards_in_hand`. Une fois jouée, elle est retirée de sa main.
+**Spécifications Techniques :**
+1. **Fichier cible :** `backend/api/sockets/router.py` (crée le fichier s'il n'existe pas).
+2. **Imports nécessaires :**
+   - `APIRouter`, `WebSocket`, `WebSocketDisconnect` de `fastapi`.
+   - `manager` depuis `.connection_manager`.
+   - `GameEngine` depuis `api.game.engine`.
+   - `GameStateManager` depuis `api.game.state_manager`.
+3. **Routeur :** Initialise `router = APIRouter()`.
+4. **Endpoint WebSocket :** Crée la route `@router.websocket("/ws/{room_id}/{player_id}")`.
+5. **Logique de la connexion (async def) :**
+   - **Connexion :** Appelle `await manager.connect(websocket, room_id)`.
+   - **Boucle d'écoute :** Ouvre un bloc `try: while True:` et écoute les messages entrants avec `data = await websocket.receive_json()`.
+   - **Traitement :** - Récupère `action_type = data.get("action")` et `payload = data.get("payload", {})`.
+     - Fais appel à `event = await GameEngine.process_action(int(room_id), int(player_id), action_type, payload)`.
+     - Récupère le nouvel état du jeu avec `state = await GameStateManager.get_game_state(int(room_id))`.
+   - **Broadcast :** Envoie à toute la room (via `manager.broadcast_to_room`) un objet JSON contenant : `{"type": "action_result", "event": event, "state": state.model_dump()}`.
+   - **Gestion d'erreurs :** - Capture `ValueError` (erreurs de jeu, ex: "Pas votre tour") et renvoie l'erreur *uniquement* au joueur fautif via `manager.send_personal_message`.
+     - Capture `WebSocketDisconnect` pour gérer la déconnexion proprement avec `manager.disconnect(websocket, room_id)` et broadcast un message `{"type": "player_disconnected", "player_id": player_id}`.
 
-**Instructions d'implémentation (Étape 15 - Décodeur de Cartes) :**
-
-1. Ajoute l'action `"play_card": GameEngine._handle_play_card` dans le dictionnaire `action_handlers` de la méthode `process_action`.
-2. Crée la méthode principale `_handle_play_card(state: GameState, payload: dict) -> dict` qui gère les validations (phase, limite par tour, possession de la carte).
-3. Dans `_handle_play_card`, utilise un dictionnaire de routage pour lier l'ID de la carte à une méthode spécifique.
-4. Implémente ces 3 sous-méthodes spécifiques :
-   - `_play_card_renfort_3(state, player, payload)` : Ajoute immédiatement 3 à `units_in_stock` du joueur.
-   - `_play_card_shield_1(state, player, payload)` : Nécessite un `target_territory_id` dans le payload. Le territoire doit appartenir au joueur. Met `shield_turns_left = 1` sur ce territoire.
-   - `_play_card_airborne_1(state, player, payload)` : Ajoute 1 à `airborne_attacks_left` du joueur (lui permettant une attaque non-adjacente en Phase 3).
-5. Fournis le code complet et mis à jour de `engine.py`. Fais très attention à l'indentation (pas de mélange espaces/tabulations).
+**Livrable :**
+Fournis uniquement le code complet, sécurisé et commenté de `router.py`.
