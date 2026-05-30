@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from backend.core.config import settings
+from core.config import settings
 from api import api_router
 from core.database import Base, engine
 from api.sockets.connection_manager import manager as connection_manager
