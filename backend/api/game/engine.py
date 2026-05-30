@@ -42,7 +42,7 @@ class GameEngine:
         # Save updated game state
         await GameStateManager.save_game_state(room_id, state)
         
-        return event
+    return event
     
     @staticmethod
     async def _handle_pass_turn(state: GameState, payload: dict) -> dict:
@@ -51,13 +51,13 @@ class GameEngine:
         """
         await GameEngine._advance_phase(state)
         
-        return {
-            "event_type": "turn_passed",
-            "room_id": state.room_id,
-            "from_player_id": state.current_player_id,
-            "phase": state.phase,
-            "turn": state.current_turn
-        }
+    return {
+        "event_type": "turn_passed",
+        "room_id": state.room_id,
+        "from_player_id": state.current_player_id,
+        "phase": state.phase,
+        "turn": state.current_turn
+    }
     
     @staticmethod
     async def _end_turn(state: GameState):
@@ -125,7 +125,7 @@ class GameEngine:
                 state.phase = 1
                 await GameEngine._calculate_reinforcements(state)
                 
-                return
+    return
                 
         # Si on arrive ici, un seul joueur est en vie (fin de partie)
     
@@ -167,7 +167,7 @@ class GameEngine:
         # Add to player's stock
         current_player.units_in_stock += total_reinforcements
         
-        return total_reinforcements
+    return total_reinforcements
     
     @staticmethod
     async def _draw_card_for_current_player(state: GameState):
@@ -263,12 +263,12 @@ class GameEngine:
         current_player.units_in_stock -= amount
         state.territories[territory_id].garrison += amount
         
-        # Return event
-        return {
-            "event_type": "units_deployed",
-            "territory_id": territory_id,
-            "amount": amount
-        }
+    # Return event
+    return {
+        "event_type": "units_deployed",
+        "territory_id": territory_id,
+        "amount": amount
+    }
     
     @staticmethod
     async def _handle_attack(state: GameState, payload: dict) -> dict:
@@ -386,19 +386,19 @@ class GameEngine:
                 state.players[original_defender_id].status = "eliminated"
         
         # Return event with combat results
-       return {
-           "event_type": "attack_result",
-           "attacker_territory_id": attacker_territory_id,
-           "defender_territory_id": defender_territory_id,
-           "attacker_dice": attacker_dice,
-           "defender_dice": defender_dice,
-           "attacker_rolls": attacker_rolls,
-           "defender_rolls": defender_rolls,
-           "attacker_losses": attacker_losses,
-           "defender_losses": defender_losses,
-           "conquered": conquered,
-           "new_attacker_garrison": state.territories[attacker_territory_id].garrison,
-           "new_defender_garrison": state.territories[defender_territory_id].garrison
+    return {
+        "event_type": "attack_result",
+        "attacker_territory_id": attacker_territory_id,
+        "defender_territory_id": defender_territory_id,
+        "attacker_dice": attacker_dice,
+        "defender_dice": defender_dice,
+        "attacker_rolls": attacker_rolls,
+        "defender_rolls": defender_rolls,
+        "attacker_losses": attacker_losses,
+        "defender_losses": defender_losses,
+        "conquered": conquered,
+        "new_attacker_garrison": state.territories[attacker_territory_id].garrison,
+        "new_defender_garrison": state.territories[defender_territory_id].garrison
        }
    
    @staticmethod
@@ -472,9 +472,9 @@ class GameEngine:
            await GameEngine._advance_phase(state)
        
        # Return event
-       return {
-           "event_type": "units_moved",
-           "source_territory_id": source_territory_id,
-           "target_territory_id": target_territory_id,
-           "amount": amount
-       }
+    return {
+        "event_type": "units_moved",
+        "source_territory_id": source_territory_id,
+        "target_territory_id": target_territory_id,
+        "amount": amount
+    }
