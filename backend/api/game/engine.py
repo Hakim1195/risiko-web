@@ -107,7 +107,7 @@ class GameEngine:
             current_player_id=1,  # Le Joueur 1 commence
             players=players,
             territories=territories,
-            contamination_zone=None
+            contamination_zone={}
         )
         
         # Simulation du début du Tour 1 : On calcule les renforts et on passe en Phase de Déploiement
