@@ -86,33 +86,23 @@ class GameEngine:
             territories[t_id] = TerritoryState(
                 territory_id=t_id,
                 owner_id=owner,
-                garrison=1,  # GDD : 1 unité posée par défaut (Garnison minimum)
+                garrison=1,  # 1 unité posée par défaut
                 shield_turns_left=0,
                 frozen_turns_left=0
             )
-            # On déduit l'unité déployée du stock privé du joueur
+            # On déduit l'unité déployée du stock des 35 unités de départ
             players[owner].units_in_stock -= 1
-            
-        # GDD : Bonus de compensation (bonus_compensation)
-        # Puisque 43 territoires % 3 joueurs = 1, le Joueur 1 a reçu un territoire de plus.
-        # Les joueurs 2 et 3 reçoivent donc 1 troupe gratuite dans leur stock.
-        for i in range(43 % len(player_ids), len(player_ids)):
-            players[player_ids[i]].units_in_stock += 1
             
         # Création de l'état initial
         state = GameState(
             room_id=room_id,
-            phase=1,
+            phase=2,              # On commence directement en Phase 2 (Déploiement du stock)
             current_turn=1,
             current_player_id=1,  # Le Joueur 1 commence
             players=players,
             territories=territories,
             contamination_zone={}
         )
-        
-        # Simulation du début du Tour 1 : On calcule les renforts et on passe en Phase de Déploiement
-        await GameEngine._calculate_reinforcements(state)
-        state.phase = 2
         
         # Sauvegarde officielle dans Redis
         await GameStateManager.save_game_state(room_id, state)
