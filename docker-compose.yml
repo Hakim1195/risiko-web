@@ -26,7 +26,7 @@ services:
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "letsencrypt_data:/letsencrypt"
+      - "letsencrypt_data_v2:/letsencrypt"
     networks:
       - game_network
 
@@ -112,7 +112,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  letsencrypt_data:
+  letsencrypt_data_v2:
 
 networks:
   game_network:
