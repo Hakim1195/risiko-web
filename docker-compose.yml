@@ -25,9 +25,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Permet à Traefik d'écouter les événements Docker
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      # Stockage persistant des certificats SSL
       - "letsencrypt_data:/letsencrypt"
     networks:
       - game_network
@@ -42,14 +40,9 @@ services:
     container_name: backend
     restart: unless-stopped
     env_file: 
-      - .env  # Docker lira le fichier .env présent dans le dossier
+      - .env
     environment:
-      - SECRET_KEY_FASTAPI=${SECRET_KEY_FASTAPI}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - DOMAIN_NAME=${DOMAIN_NAME}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # On ne garde ici que les variables internes à l'architecture Docker
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
     depends_on:
@@ -63,6 +56,7 @@ services:
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.docker.network=game_network" # <-- L'étiquette de sauvetage
 
   # ==========================================
   # FRONTEND (NGINX)
@@ -83,6 +77,7 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=game_network" # <-- L'étiquette de sauvetage
 
   # ==========================================
   # BASE DE DONNÉES (POSTGRESQL)
@@ -92,11 +87,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     env_file: 
-      - .env  # Docker lira le fichier .env présent dans le dossier
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -109,7 +100,6 @@ services:
     image: redis:7-alpine
     container_name: redis
     restart: unless-stopped
-    # Activation de la persistance AOF pour ne pas perdre l'état du jeu
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
