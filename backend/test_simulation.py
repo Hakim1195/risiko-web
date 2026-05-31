@@ -1,98 +1,58 @@
-import asyncio
-from api.game.state_schemas import GameState, PlayerState, TerritoryState
-from api.game.engine import GameEngine
-from api.game.state_manager import GameStateManager
-
-async def run_simulation():
-    print("\n🚀 DÉBUT DE LA SIMULATION DU GAME ENGINE 🚀\n")
-
-    room_id = 999
-    p1_id, p2_id = 1, 2
-
-    # 1. Création d'un état de jeu factice
-    # On crée d'abord nos deux territoires de test
-    # 1. Création d'un état de jeu factice
-    fake_territories = {
-        1: TerritoryState(territory_id=1, owner_id=p1_id, garrison=3), # P1 possède T1
-        2: TerritoryState(territory_id=2, owner_id=p2_id, garrison=1), # P2 possède T2
-        3: TerritoryState(territory_id=3, owner_id=p2_id, garrison=1), # <-- BOUCLIER DE SURVIE POUR P2
-    }
-    # On remplit le reste (de 4 à 43)
-    for i in range(4, 44):
-        fake_territories[i] = TerritoryState(territory_id=i, owner_id=None, garrison=0)
-
-    state = GameState(
-        room_id=room_id,
-        current_turn=1,
-        current_player_id=p1_id,
-        phase=2, # Déploiement
-        contamination_zone={"position": 1, "probability": 1.0}, # La zone est sur T1
-        players={
-            p1_id: PlayerState(
-                player_id=p1_id, 
-                faction="Mutanti", 
-                units_in_stock=5, 
-                status="alive",
-                cards_in_hand=["card_renfort_3", "card_shield_1"],
-                cards_played_this_turn=0),
-            p2_id: PlayerState(player_id=p2_id, faction="Sintetici", units_in_stock=0, status="alive")
-        },
-        territories=fake_territories
-    )
-
-    # Sauvegarde dans Redis
-    await GameStateManager.save_game_state(room_id, state)
-    print("✅ État initial généré et sauvegardé dans Redis.")
-
-    # 2. Test Déploiement (Phase 2)
-    print(f"\n--- 🛠️ P1 déploie 2 troupes sur le Territoire 1 ---")
-    await GameEngine.process_action(room_id, p1_id, "deploy_units", {"territory_id": 1, "amount": 2})
-    state = await GameStateManager.get_game_state(room_id)
-    print(f"Garnison de T1 : {state.territories[1].garrison} troupes (Attendu: 5)")
-    print(f"Stock de P1 : {state.players[p1_id].units_in_stock} troupes (Attendu: 3)")
-
-    # 2.5 Test Carte (Phase 2)
-    print(f"\n--- 🃏 P1 joue sa carte RENFORT IMMÉDIAT ---")
-    event_card = await GameEngine.process_action(room_id, p1_id, "play_card", {"card_id": "card_renfort_3"})
-    state = await GameStateManager.get_game_state(room_id)
-    print(f"Événement renvoyé : {event_card}")
-    print(f"Nouveau stock de P1 : {state.players[p1_id].units_in_stock} troupes (Attendu: 6)")
-    print(f"Cartes restantes en main : {state.players[p1_id].cards_in_hand}")
-
-    # 3. Test Attaque (Phase 3)
-    state.phase = 3
-    await GameStateManager.save_game_state(room_id, state)
-    print(f"\n--- ⚔️ P1 attaque le Territoire 2 depuis le Territoire 1 (avec 3 dés) ---")
-    event = await GameEngine.process_action(room_id, p1_id, "attack_territory", {
-        "attacker_territory_id": 1,
-        "defender_territory_id": 2,
-        "attacker_dice": 3
-    })
-    print(f"Dés Attaquant : {event['attacker_rolls']}")
-    print(f"Dés Défenseur : {event['defender_rolls']}")
-    print(f"Pertes -> Attaquant: {event['attacker_losses']} | Défenseur: {event['defender_losses']}")
-    if event['conquered']:
-        print("🏆 LE TERRITOIRE 2 A ÉTÉ CONQUIS PAR P1 !")
-
-    # 4. Test Contamination (Phase 0 du Tour Global suivant)
-    print(f"\n--- ☢️ SAUT TEMPOREL : Passage au Tour Global Suivant ---")
-    # On force la phase à 5 pour déclencher l'auto-advance et le changement de tour
-    state = await GameStateManager.get_game_state(room_id)
-    state.phase = 5
-    await GameStateManager.save_game_state(room_id, state)
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Wasteland Warfare</title>
+    <style>
+        body { background-color: #1a1a1a; color: #00ff00; font-family: monospace; padding: 20px; }
+        #log { white-space: pre-wrap; margin-top: 20px; }
+        .btn { border: none; padding: 10px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        .btn-init { background: #ffaa00; color: black; }
+        .btn-action { background: #00ff00; color: black; }
+    </style>
+</head>
+<body>
+    <h2>📡 Console de Test WebSocket - Joueur 1</h2>
     
-    # P1 passe son tour -> C'est au tour de P2
-    await GameEngine.process_action(room_id, p1_id, "pass_turn", {})
+    <button class="btn btn-init" onclick="sendInitGame()">1. Initialiser la partie</button>
+    <button class="btn btn-action" onclick="sendPassTurn()">2. Action : Passer le tour</button>
     
-    # On force la phase 5 pour P2 et il passe son tour -> Nouveau Round Global (retour à P1 !)
-    state = await GameStateManager.get_game_state(room_id)
-    state.phase = 5
-    await GameStateManager.save_game_state(room_id, state)
-    await GameEngine.process_action(room_id, p2_id, "pass_turn", {})
+    <div id="log">En attente de connexion...</div>
 
-    state = await GameStateManager.get_game_state(room_id)
-    print(f"Nouveau Round Global ! La Zone Toxique s'est déplacée sur le Territoire {state.contamination_zone['position']} (Proba remise à {state.contamination_zone['probability']})")
-    print("\n🏁 FIN DE LA SIMULATION 🏁")
+    <script>
+        const log = document.getElementById('log');
+        const ws = new WebSocket("wss://api.wasteland-warfare.com/ws/999/1");
 
-if __name__ == '__main__':
-    asyncio.run(run_simulation())
+        ws.onopen = function() {
+            log.innerHTML += "\n✅ Connecté avec succès au Game Engine (Room 999, Player 1) !";
+        };
+
+        ws.onmessage = function(event) {
+            const response = JSON.parse(event.data);
+            log.innerHTML += "\n\n📩 Message du Serveur :\n" + JSON.stringify(response, null, 2);
+        };
+
+        ws.onclose = function() {
+            log.innerHTML += "\n❌ Déconnecté du serveur.";
+        };
+
+        // Nouvelle fonction pour créer le plateau
+        function sendInitGame() {
+            const action = {
+                action: "init_game", // On suppose que c'est le nom de ton action d'initialisation
+                payload: {}
+            };
+            ws.send(JSON.stringify(action));
+            log.innerHTML += "\n\n📤 Envoi : " + JSON.stringify(action);
+        }
+
+        function sendPassTurn() {
+            const action = {
+                action: "pass_turn",
+                payload: {}
+            };
+            ws.send(JSON.stringify(action));
+            log.innerHTML += "\n\n📤 Envoi : " + JSON.stringify(action);
+        }
+    </script>
+</body>
+</html>
