@@ -64,6 +64,7 @@ class GameEngine:
         for pid in player_ids:
             players[pid] = PlayerState(
                 player_id=pid,
+                faction=factions_disponibles[i % len(factions_disponibles)],
                 status="alive",
                 units_in_stock=initial_troops,
                 cards_in_hand=[],
