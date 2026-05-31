@@ -4,7 +4,8 @@ from typing import Dict, Any
 from api.game.state_manager import GameStateManager
 from api.game.state_schemas import GameState
 from api.game.map_constants import CONTINENTS, ADJACENCY
-
+# Potentiellement à supprimer
+from api.game.state_schemas import GameState, PlayerState, TerritoryState
 
 class GameEngine:
     """Game Engine for processing player actions and managing game state."""
@@ -14,7 +15,11 @@ class GameEngine:
         """
         Process a player action and update the game state accordingly.
         """
-        # Get current game state
+        # INTERCEPTION CRUCIALE : Si l'action est d'initialiser, on crée le monde directement
+        if action_type == "init_game":
+            return await GameEngine._handle_init_game(room_id, payload)
+            
+        # Pour toutes les autres actions, on récupère l'état du jeu actuel
         state = await GameStateManager.get_game_state(room_id)
         
         # Verify it's the player's turn and they are alive
@@ -45,6 +50,76 @@ class GameEngine:
         
         return event
     
+    @staticmethod
+    async def _handle_init_game(room_id: int, payload: dict) -> dict:
+        """
+        Génère le plateau de jeu initial selon les règles du GDD.
+        """
+        # Configuration standard pour un test à 3 joueurs (IDs 1, 2, 3)
+        player_ids = [1, 2, 3]
+        initial_troops = 35  # GDD : 35 unités pour 3 joueurs
+        
+        # Création des profils des joueurs
+        players = {}
+        for pid in player_ids:
+            players[pid] = PlayerState(
+                player_id=pid,
+                status="alive",
+                units_in_stock=initial_troops,
+                cards_in_hand=[],
+                strategic_moves_left=1,
+                has_conquered_this_turn=False,
+                airborne_attacks_left=0,
+                cards_played_this_turn=0
+            )
+            
+        # Distribution aléatoire des 43 territoires
+        territories = {}
+        shuffled_t_ids = list(range(1, 44))
+        random.shuffle(shuffled_t_ids)
+        
+        for i, t_id in enumerate(shuffled_t_ids):
+            owner = player_ids[i % len(player_ids)]
+            territories[t_id] = TerritoryState(
+                territory_id=t_id,
+                owner_id=owner,
+                garrison=1,  # GDD : 1 unité posée par défaut (Garnison minimum)
+                shield_turns_left=0,
+                frozen_turns_left=0
+            )
+            # On déduit l'unité déployée du stock privé du joueur
+            players[owner].units_in_stock -= 1
+            
+        # GDD : Bonus de compensation (bonus_compensation)
+        # Puisque 43 territoires % 3 joueurs = 1, le Joueur 1 a reçu un territoire de plus.
+        # Les joueurs 2 et 3 reçoivent donc 1 troupe gratuite dans leur stock.
+        for i in range(43 % len(player_ids), len(player_ids)):
+            players[player_ids[i]].units_in_stock += 1
+            
+        # Création de l'état initial
+        state = GameState(
+            room_id=room_id,
+            phase=1,
+            current_turn=1,
+            current_player_id=1,  # Le Joueur 1 commence
+            players=players,
+            territories=territories,
+            contamination_zone=None
+        )
+        
+        # Simulation du début du Tour 1 : On calcule les renforts et on passe en Phase de Déploiement
+        await GameEngine._calculate_reinforcements(state)
+        state.phase = 2
+        
+        # Sauvegarde officielle dans Redis
+        await GameStateManager.save_game_state(room_id, state)
+        
+        return {
+            "event_type": "game_initialized",
+            "room_id": room_id,
+            "message": "Le Wasteland a été généré avec succès ! 43 territoires distribués."
+        }
+
     @staticmethod
     async def _handle_pass_turn(state: GameState, payload: dict) -> dict:
         """
