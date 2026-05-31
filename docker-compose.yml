@@ -38,6 +38,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
+    healthcheck:            
+      disable: true         
     restart: unless-stopped
     env_file: 
       - .env
