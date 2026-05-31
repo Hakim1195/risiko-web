@@ -61,7 +61,9 @@ class GameEngine:
         
         # Création des profils des joueurs
         players = {}
-        for pid in player_ids:
+        factions_disponibles = ["Sintetici", "Mutanti", "Coloni", "Rettiliani", "Predoni"]
+        
+        for i, pid in enumerate(player_ids):
             players[pid] = PlayerState(
                 player_id=pid,
                 faction=factions_disponibles[i % len(factions_disponibles)],
